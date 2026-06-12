@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 // ══════════════════════════════════════════════════════════════
 // KONFIGURASI
 // ══════════════════════════════════════════════════════════════
-const APPS_SCRIPT_URL = "GANTI_DENGAN_URL_APPS_SCRIPT_ANDA";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-m8GlmQnk24NoH8lqrnXiJuRyTt3MVKqRjza5ZwB1GRxrTMHEHJ8GFaTurEuVD2M/exec";
 const PANITIA_PASSWORD = "bmwsmk2026"; // Ganti dengan password panitia
 
 // ══════════════════════════════════════════════════════════════
@@ -20,9 +20,72 @@ const DEMO_DATA = [
 // ══════════════════════════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════════════════════════
-const BMW_COLOR = { Bekerja:"#2563EB", Kuliah:"#7C3AED", Wirausaha:"#D97706" };
-const BMW_BG    = { Bekerja:"#DBEAFE", Kuliah:"#EDE9FE", Wirausaha:"#FEF3C7" };
-const BMW_ICON  = { Bekerja:"💼", Kuliah:"🎓", Wirausaha:"🚀" };
+const WBM_COLOR = { Bekerja:"#2563EB", Kuliah:"#7C3AED", Wirausaha:"#D97706" };
+const WBM_BG    = { Bekerja:"#DBEAFE", Kuliah:"#EDE9FE", Wirausaha:"#FEF3C7" };
+const WBM_ICON  = { Bekerja:"💼", Kuliah:"🎓", Wirausaha:"🚀" };
+
+// ── Detail bidang/jurusan/usaha berdasarkan Holland dominan
+const HOLLAND_DETAIL = {
+  Bekerja:{
+    R:"🔧 Bidang kerja: Teknisi / Mekanik / Operator — manufaktur, otomotif, konstruksi, elektronik/listrik.",
+    I:"🔬 Bidang kerja: Analis Teknis / Quality Control / Lab Teknisi — pengujian produk, riset terapan, laboratorium.",
+    A:"🎨 Bidang kerja: Desainer / Kreatif Industri — desain grafis, multimedia, konten digital, percetakan.",
+    S:"🤝 Bidang kerja: Customer Service / Tenaga Kesehatan / Pendidik — pelayanan sosial, kesehatan, vokasi.",
+    E:"📊 Bidang kerja: Sales / Marketing / Supervisor — penjualan, pemasaran, pengembangan bisnis, manajemen tim.",
+    C:"📋 Bidang kerja: Administrasi / Staf Keuangan / Akuntan — tata kelola, pembukuan, arsip, back-office.",
+  },
+  Kuliah:{
+    R:"🏗️ Jurusan yang cocok: Teknik Mesin · Teknik Sipil · Teknik Elektro · D3/D4 Teknologi Industri · Teknik Otomotif.",
+    I:"💻 Jurusan yang cocok: Teknik Informatika · Ilmu Komputer · Matematika · Fisika · Farmasi · Biologi · Statistika.",
+    A:"🎭 Jurusan yang cocok: Desain Komunikasi Visual · Seni Rupa · Arsitektur · Film & Televisi · Animasi · Sastra.",
+    S:"💛 Jurusan yang cocok: Psikologi · Pendidikan · Kesehatan Masyarakat · Keperawatan · Sosiologi · Pekerjaan Sosial.",
+    E:"🌐 Jurusan yang cocok: Manajemen Bisnis · Ilmu Komunikasi · Hukum · Administrasi Publik · Hubungan Internasional.",
+    C:"💰 Jurusan yang cocok: Akuntansi · Sistem Informasi · Manajemen Keuangan · Administrasi Bisnis · Perpajakan.",
+  },
+  Wirausaha:{
+    R:"🔩 Jenis usaha: Bengkel / Kontraktor Kecil / Servis Elektronik / Produksi Barang — usaha berbasis keterampilan teknis.",
+    I:"💡 Jenis usaha: Konsultasi IT / Pengembangan Aplikasi / Jasa Analitik Data / Software House skala kecil.",
+    A:"🎬 Jenis usaha: Desainer Freelance / Konten Kreator / Studio Foto & Video / Brand Lokal / Fashion.",
+    S:"🌱 Jenis usaha: Lembaga Kursus / Les Privat / Katering Komunitas / Jasa Konseling / Childcare.",
+    E:"🛒 Jenis usaha: Reseller / Dropship / Agen Properti / Event Organizer / Distribusi Produk.",
+    C:"📑 Jenis usaha: Jasa Perpajakan / Pembukuan UMKM / Apotek Kecil / Jasa Administrasi Bisnis.",
+  }
+};
+
+// ── Normalisasi baris dari Google Sheets → field JS
+// Sheets mengirim key = nama header kolom (misal "Skor Bekerja", "Kode Holland")
+// Dashboard butuh field JS (misal skor_B, hollandKode)
+function normalizeRow(d) {
+  const r = { ...d };
+  const map = {
+    "Nama":"nama","NISN":"nisn","Kelas/Jurusan":"kelas","Jenis Kelamin":"jk",
+    "Sekolah":"sekolah","Tanggal Tes":"tgl","Pelanggaran":"violations",
+    "H-Realistic":"h_R","H-Investigative":"h_I","H-Artistic":"h_A",
+    "H-Social":"h_S","H-Enterprising":"h_E","H-Conventional":"h_C",
+    "Kode Holland":"hollandKode",
+    "BF-Openness":"bf_O","BF-Conscientiousness":"bf_C","BF-Extraversion":"bf_E",
+    "BF-Agreeableness":"bf_A","BF-Neuroticism":"bf_N","BF-Stabilitas":"bf_Nstabil",
+    "EF-Umum":"ef_umum","EF-Akademik":"ef_akademik",
+    "EF-Vokasional":"ef_vokasional","EF-Wirausaha":"ef_wirausaha",
+    "Skor Bekerja":"skor_B","Skor Kuliah":"skor_M","Skor Wirausaha":"skor_W",
+    "REKOMENDASI WBM":"rekomendasi","Detail Rekomendasi":"detailRekomendasi",
+    "Timestamp":"timestamp",
+  };
+  for (const [sheetKey, jsKey] of Object.entries(map)) {
+    if (d[sheetKey] !== undefined && r[jsKey] === undefined) r[jsKey] = d[sheetKey];
+  }
+  // Pastikan angka bertipe number
+  ["h_R","h_I","h_A","h_S","h_E","h_C",
+   "bf_O","bf_C","bf_E","bf_A","bf_N","bf_Nstabil",
+   "ef_umum","ef_akademik","ef_vokasional","ef_wirausaha",
+   "skor_B","skor_M","skor_W","violations"
+  ].forEach(f => { if (r[f] !== undefined) r[f] = Number(r[f]) || 0; });
+  // Generate detail jika belum ada
+  if (!r.detailRekomendasi && r.rekomendasi && r.hollandKode) {
+    r.detailRekomendasi = HOLLAND_DETAIL[r.rekomendasi]?.[String(r.hollandKode)[0]] || "";
+  }
+  return r;
+}
 
 const efKlasifikasi = (v) => {
   if (v >= 81) return { label:"Sangat Tinggi", color:"#16A34A" };
@@ -34,8 +97,8 @@ const efKlasifikasi = (v) => {
 
 function Badge({ val }) {
   return (
-    <span style={{ background:BMW_BG[val]||"#f3f4f6", color:BMW_COLOR[val]||"#374151", fontWeight:700, fontSize:11, padding:"3px 10px", borderRadius:20 }}>
-      {BMW_ICON[val]} {val}
+    <span style={{ background:WBM_BG[val]||"#f3f4f6", color:WBM_COLOR[val]||"#374151", fontWeight:700, fontSize:11, padding:"3px 10px", borderRadius:20 }}>
+      {WBM_ICON[val]} {val}
     </span>
   );
 }
@@ -81,6 +144,13 @@ function cetakLaporan(siswa) {
     Kuliah:"Berdasarkan profil psikologis Anda, kecenderungan terbesar mengarah pada jalur MELANJUTKAN KULIAH. Anda memiliki keterbukaan intelektual, kemampuan berpikir analitis, dan efikasi akademik yang mendukung keberhasilan di perguruan tinggi.",
     Wirausaha:"Berdasarkan profil psikologis Anda, kecenderungan terbesar mengarah pada jalur WIRAUSAHA. Anda memiliki jiwa kepemimpinan, keberanian mengambil risiko, dan efikasi kewirausahaan yang menjadi modal utama membangun usaha mandiri."
   };
+
+  // Gunakan normalizeRow agar data Sheets maupun data JS sama-sama bisa dibaca
+  const s2 = normalizeRow(siswa);
+  const topHolland = s2.hollandKode ? String(s2.hollandKode)[0] : 'R';
+  const detailBidang = s2.detailRekomendasi ||
+    (HOLLAND_DETAIL[s2.rekomendasi]?.[topHolland] ?? '');
+
   const saranMap = {
     Bekerja:["Persiapkan portofolio keterampilan teknis dari jurusan SMK secara profesional","Ikuti program magang/PKL dengan serius untuk membangun relasi kerja nyata","Kejar sertifikasi kompetensi relevan (LSP/BNSP) untuk meningkatkan nilai jual","Manfaatkan bursa kerja dan job fair yang diadakan sekolah atau Disnaker","Kembangkan soft skill komunikasi dan etos kerja untuk memperkuat profil kerja"],
     Kuliah:["Riset perguruan tinggi yang memiliki program sesuai jurusan SMK (Politeknik, D3, S1)","Persiapkan diri untuk seleksi SNBP/SNBT dan cari informasi beasiswa sejak dini","Tingkatkan kemampuan literasi, numerasi, dan bahasa Inggris untuk seleksi","Bangun prestasi akademik di SMK sebagai bahan portofolio pendaftaran","Konsultasikan pilihan prodi dengan guru BK dan pertimbangkan biaya pendidikan"],
@@ -92,7 +162,7 @@ function cetakLaporan(siswa) {
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Laporan BMW — ${siswa.nama}</title>
+<title>Laporan WBM — ${s2.nama}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
@@ -130,53 +200,58 @@ function cetakLaporan(siswa) {
     <div style="font-size:40px">📋</div>
     <div>
       <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:4px">Laporan Hasil Tes Karir Terpadu</div>
-      <div style="font-size:22px;font-weight:800">Analisis BMW — SMK Kelas 1</div>
+      <div style="font-size:22px;font-weight:800">Analisis WBM — SMK Kelas 1</div>
       <div style="font-size:12px;color:#aaa;margin-top:2px">Holland RIASEC · Big Five Personality · Efikasi Diri</div>
     </div>
   </div>
 
-  ${(siswa.violations||0)>0?`<div style="background:#FEE2E2;border:1px solid #FCA5A5;border-radius:8px;padding:10px 14px;font-size:12px;color:#DC2626;margin-bottom:16px">⚠️ Terdeteksi ${siswa.violations} pelanggaran (pindah tab) selama tes berlangsung.</div>`:''}
+  ${(s2.violations||0)>0?`<div style="background:#FEE2E2;border:1px solid #FCA5A5;border-radius:8px;padding:10px 14px;font-size:12px;color:#DC2626;margin-bottom:16px">⚠️ Terdeteksi ${s2.violations} pelanggaran (pindah tab) selama tes berlangsung.</div>`:''}
 
   <div class="card">
     <h3>👤 Data Diri Siswa</h3>
     <div class="info-grid">
-      <div class="info-row"><span class="info-key">Nama</span><span class="info-val">${siswa.nama}</span></div>
-      <div class="info-row"><span class="info-key">NISN</span><span class="info-val">${siswa.nisn||'-'}</span></div>
-      <div class="info-row"><span class="info-key">Kelas/Jurusan</span><span class="info-val">${siswa.kelas}</span></div>
-      <div class="info-row"><span class="info-key">Jenis Kelamin</span><span class="info-val">${siswa.jk||'-'}</span></div>
-      <div class="info-row"><span class="info-key">Sekolah</span><span class="info-val">${siswa.sekolah||'-'}</span></div>
-      <div class="info-row"><span class="info-key">Tanggal Tes</span><span class="info-val">${siswa.tgl||'-'}</span></div>
+      <div class="info-row"><span class="info-key">Nama</span><span class="info-val">${s2.nama}</span></div>
+      <div class="info-row"><span class="info-key">NISN</span><span class="info-val">${s2.nisn||'-'}</span></div>
+      <div class="info-row"><span class="info-key">Kelas/Jurusan</span><span class="info-val">${s2.kelas}</span></div>
+      <div class="info-row"><span class="info-key">Jenis Kelamin</span><span class="info-val">${s2.jk||'-'}</span></div>
+      <div class="info-row"><span class="info-key">Sekolah</span><span class="info-val">${s2.sekolah||'-'}</span></div>
+      <div class="info-row"><span class="info-key">Tanggal Tes</span><span class="info-val">${s2.tgl||'-'}</span></div>
     </div>
   </div>
 
-  <div class="rek-box" style="background:${BMW_COLOR[siswa.rekomendasi]};color:#fff">
+  <div class="rek-box" style="background:${WBM_COLOR[s2.rekomendasi]};color:#fff">
     <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.8;margin-bottom:8px">Rekomendasi Jalur Karir</div>
-    <h2>${BMW_ICON[siswa.rekomendasi]} ${siswa.rekomendasi==='Kuliah'?'Melanjutkan Kuliah':siswa.rekomendasi}</h2>
-    <p>${rekDesc[siswa.rekomendasi]}</p>
+    <h2>${WBM_ICON[s2.rekomendasi]} ${s2.rekomendasi==='Kuliah'?'Melanjutkan Kuliah':s2.rekomendasi}</h2>
+    <p>${rekDesc[s2.rekomendasi]}</p>
   </div>
 
+  ${detailBidang ? `<div class="card" style="border-left:4px solid ${WBM_COLOR[s2.rekomendasi]}">
+    <h3 style="color:${WBM_COLOR[s2.rekomendasi]}">${WBM_ICON[s2.rekomendasi]} Detail Rekomendasi Berdasarkan Profil Holland</h3>
+    <p style="font-size:13px;color:#374151;line-height:1.8;margin-top:6px">${detailBidang}</p>
+  </div>` : ''}
+
   <div class="card">
-    <h3>📊 Skor BMW</h3>
-    ${[['💼 Bekerja',siswa.skor_B,'#2563EB'],['🎓 Melanjutkan Kuliah',siswa.skor_M,'#7C3AED'],['🚀 Wirausaha',siswa.skor_W,'#D97706']]
+    <h3>📊 Skor WBM</h3>
+    ${[['💼 Bekerja',s2.skor_B,'#2563EB'],['🎓 Melanjutkan Kuliah',s2.skor_M,'#7C3AED'],['🚀 Wirausaha',s2.skor_W,'#D97706']]
       .map(([l,v,c])=>`<div class="bar-wrap"><div class="bar-label"><span>${l}</span><span style="color:${c}">${v}%</span></div><div class="bar-bg"><div class="bar-fill" style="width:${v}%;background:${c}"></div></div></div>`).join('')}
   </div>
 
   <div class="grid2">
     <div class="card">
-      <h3>🎯 Holland RIASEC <span style="font-weight:400;color:#6b7280;font-size:11px">(kode: ${siswa.hollandKode||'—'})</span></h3>
-      ${[['R','Realistic',siswa.h_R,'#3B82F6'],['I','Investigative',siswa.h_I,'#8B5CF6'],['A','Artistic',siswa.h_A,'#EC4899'],['S','Social',siswa.h_S,'#10B981'],['E','Enterprising',siswa.h_E,'#F59E0B'],['C','Conventional',siswa.h_C,'#6B7280']]
+      <h3>🎯 Holland RIASEC <span style="font-weight:400;color:#6b7280;font-size:11px">(kode: ${s2.hollandKode||'—'})</span></h3>
+      ${[['R','Realistic',s2.h_R,'#3B82F6'],['I','Investigative',s2.h_I,'#8B5CF6'],['A','Artistic',s2.h_A,'#EC4899'],['S','Social',s2.h_S,'#10B981'],['E','Enterprising',s2.h_E,'#F59E0B'],['C','Conventional',s2.h_C,'#6B7280']]
         .sort((a,b)=>b[2]-a[2]).map(([k,l,v,c])=>`<div class="score-row"><span>${k} — ${l}</span><span style="font-weight:700;color:${c}">${v}%</span></div>`).join('')}
     </div>
     <div class="card">
       <h3>🧬 Big Five Personality</h3>
-      ${[['O','Openness',siswa.bf_O,'#7C3AED'],['C','Conscientiousness',siswa.bf_C,'#2563EB'],['E','Extraversion',siswa.bf_E,'#F59E0B'],['A','Agreeableness',siswa.bf_A,'#10B981'],['N','Neuroticism',siswa.bf_N,'#EF4444']]
+      ${[['O','Openness',s2.bf_O,'#7C3AED'],['C','Conscientiousness',s2.bf_C,'#2563EB'],['E','Extraversion',s2.bf_E,'#F59E0B'],['A','Agreeableness',s2.bf_A,'#10B981'],['N','Neuroticism',s2.bf_N,'#EF4444']]
         .map(([k,l,v,c])=>`<div class="score-row"><span>${k} — ${l}</span><span style="font-weight:700;color:${c}">${v}%</span></div>`).join('')}
     </div>
   </div>
 
   <div class="card">
     <h3>💪 Efikasi Diri</h3>
-    ${[['⚡','Efikasi Diri Umum',siswa.ef_umum,'#6D28D9'],['📖','Efikasi Akademik (→Kuliah)',siswa.ef_akademik,'#0D9488'],['🔧','Efikasi Vokasional (→Bekerja)',siswa.ef_vokasional,'#2563EB'],['🚀','Efikasi Kewirausahaan (→Wirausaha)',siswa.ef_wirausaha,'#D97706']]
+    ${[['⚡','Efikasi Diri Umum',s2.ef_umum,'#6D28D9'],['📖','Efikasi Akademik (→Kuliah)',s2.ef_akademik,'#0D9488'],['🔧','Efikasi Vokasional (→Bekerja)',s2.ef_vokasional,'#2563EB'],['🚀','Efikasi Kewirausahaan (→Wirausaha)',s2.ef_wirausaha,'#D97706']]
       .map(([icon,l,v,c])=>`<div class="ef-row"><span>${icon} ${l}</span><span style="display:flex;gap:8px;align-items:center"><span class="ef-badge" style="background:${c}22;color:${c}">${efKlsLabel(v)}</span><span style="font-weight:800;color:${c}">${v}%</span></span></div>`).join('')}
     <div style="background:#F9FAFB;border-radius:8px;padding:10px;margin-top:12px;font-size:11px;color:#6B7280;line-height:1.7">
       <strong>Panduan:</strong> ≥81% Sangat Tinggi · 61–80% Tinggi · 41–60% Sedang · 21–40% Rendah · &lt;21% Sangat Rendah
@@ -186,12 +261,12 @@ function cetakLaporan(siswa) {
   <div class="card">
     <h3>💡 Saran Pengembangan</h3>
     <ul class="saran-list">
-      ${(saranMap[siswa.rekomendasi]||[]).map(s=>`<li><span>✅</span><span>${s}</span></li>`).join('')}
+      ${(saranMap[s2.rekomendasi]||[]).map(s=>`<li><span>✅</span><span>${s}</span></li>`).join('')}
     </ul>
   </div>
 
   <div style="text-align:center;font-size:11px;color:#aaa;margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb">
-    <p>Laporan ini digenerate oleh Sistem Tes BMW SMK · ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</p>
+    <p>Laporan ini digenerate oleh Sistem Tes WBM SMK · ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</p>
     <p style="margin-top:4px">Hasil bersifat panduan awal — konsultasikan dengan guru BK untuk pendalaman lebih lanjut</p>
   </div>
 </div>
@@ -227,7 +302,7 @@ function ViewPeserta({ onBack }) {
       }
       const res = await fetch(`${APPS_SCRIPT_URL}?action=getByNisn&nisn=${nisn.trim()}`);
       const json = await res.json();
-      if (json.status === "ok" && json.data) setHasil(json.data);
+      if (json.status === "ok" && json.data) setHasil(normalizeRow(json.data));
       else setError("Data dengan NISN tersebut belum ditemukan.");
     } catch {
       setError("Gagal menghubungi server. Coba lagi.");
@@ -242,12 +317,14 @@ function ViewPeserta({ onBack }) {
     card: { background:"#fff", border:"1px solid #E4E0D8", borderRadius:12, padding:20, marginBottom:16 },
   };
 
+  const getDetail = (d) => d.detailRekomendasi || (HOLLAND_DETAIL[d.rekomendasi]?.[String(d.hollandKode||'')[0]] ?? '');
+
   return (
     <div style={s.wrap}>
       <div style={s.hdr}>
         <div style={{ maxWidth:640, margin:"0 auto" }}>
           <div style={{ fontSize:10, letterSpacing:".12em", textTransform:"uppercase", color:"#888", marginBottom:4 }}>Cek Hasil Tes</div>
-          <div style={{ fontSize:20, fontWeight:800 }}>🎯 BMW Karir — Hasil Saya</div>
+          <div style={{ fontSize:20, fontWeight:800 }}>🎯 WBM Karir — Hasil Saya</div>
           <div style={{ fontSize:11, color:"#888", marginTop:2 }}>Masukkan NISN untuk melihat rekomendasi karir Anda</div>
         </div>
       </div>
@@ -271,9 +348,9 @@ function ViewPeserta({ onBack }) {
 
         {hasil && (
           <>
-            <div style={{ ...s.card, background:BMW_COLOR[hasil.rekomendasi], color:"#fff", textAlign:"center" }}>
+            <div style={{ ...s.card, background:WBM_COLOR[hasil.rekomendasi], color:"#fff", textAlign:"center" }}>
               <div style={{ fontSize:11, letterSpacing:".1em", textTransform:"uppercase", opacity:.8, marginBottom:8 }}>Rekomendasi Jalur Karir</div>
-              <div style={{ fontSize:32 }}>{BMW_ICON[hasil.rekomendasi]}</div>
+              <div style={{ fontSize:32 }}>{WBM_ICON[hasil.rekomendasi]}</div>
               <div style={{ fontSize:26, fontWeight:800, marginTop:6 }}>
                 {hasil.rekomendasi === "Kuliah" ? "Melanjutkan Kuliah" : hasil.rekomendasi}
               </div>
@@ -281,11 +358,20 @@ function ViewPeserta({ onBack }) {
             </div>
 
             <div style={s.card}>
-              <div style={{ fontWeight:700, marginBottom:12 }}>📊 Skor BMW</div>
+              <div style={{ fontWeight:700, marginBottom:12 }}>📊 Skor WBM</div>
               <ScoreBar label="💼 Bekerja" value={hasil.skor_B} color="#2563EB" />
               <ScoreBar label="🎓 Melanjutkan Kuliah" value={hasil.skor_M} color="#7C3AED" />
               <ScoreBar label="🚀 Wirausaha" value={hasil.skor_W} color="#D97706" />
             </div>
+
+            {getDetail(hasil) && (
+              <div style={{ ...s.card, borderLeft:`4px solid ${WBM_COLOR[hasil.rekomendasi]}` }}>
+                <div style={{ fontWeight:700, fontSize:13, marginBottom:8, color:WBM_COLOR[hasil.rekomendasi] }}>
+                  {WBM_ICON[hasil.rekomendasi]} Detail Rekomendasi
+                </div>
+                <div style={{ fontSize:13, color:"#374151", lineHeight:1.75 }}>{getDetail(hasil)}</div>
+              </div>
+            )}
 
             <div style={s.card}>
               <div style={{ fontWeight:700, marginBottom:12 }}>💪 Efikasi Diri</div>
@@ -342,7 +428,7 @@ function LoginPanitia({ onLogin }) {
         <div style={{ textAlign:"center", marginBottom:28 }}>
           <div style={{ fontSize:40, marginBottom:12 }}>🔐</div>
           <div style={{ fontSize:11, letterSpacing:".14em", textTransform:"uppercase", color:"#666", marginBottom:6 }}>Dashboard Panitia</div>
-          <div style={{ fontSize:22, fontWeight:800, color:"#fff" }}>BMW Karir — SMK</div>
+          <div style={{ fontSize:22, fontWeight:800, color:"#fff" }}>WBM Karir — SMK</div>
           <div style={{ fontSize:12, color:"#666", marginTop:4 }}>Masukkan password untuk melanjutkan</div>
         </div>
         <input
@@ -371,7 +457,7 @@ function HalamanPilih({ onPeserta, onPanitia }) {
       <div style={{ textAlign:"center", width:"100%", maxWidth:520 }}>
         <div style={{ fontSize:52, marginBottom:16 }}>🎯</div>
         <div style={{ fontSize:11, letterSpacing:".14em", textTransform:"uppercase", color:"#888", marginBottom:8 }}>Sistem Tes Karir</div>
-        <div style={{ fontSize:28, fontWeight:800, color:"#fff", marginBottom:4 }}>BMW — SMK</div>
+        <div style={{ fontSize:28, fontWeight:800, color:"#fff", marginBottom:4 }}>WBM — SMK</div>
         <div style={{ fontSize:13, color:"#666", marginBottom:40 }}>Bekerja · Melanjutkan Kuliah · Wirausaha</div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
           <button onClick={onPeserta}
@@ -414,7 +500,7 @@ function DashboardPanitiaMain({ onLogout }) {
     try {
       const res = await fetch(APPS_SCRIPT_URL + "?action=getData");
       const json = await res.json();
-      if (json.data) setData(json.data);
+      if (json.data) setData(json.data.map(normalizeRow));
     } catch {}
     setLoading(false);
   }, []);
@@ -452,7 +538,7 @@ function DashboardPanitiaMain({ onLogout }) {
         <div style={{ maxWidth:1200, margin:"0 auto", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12 }}>
           <div>
             <div style={{ fontSize:10, letterSpacing:".12em", textTransform:"uppercase", color:"#888", marginBottom:4 }}>Dashboard Panitia · SMK Kelas 1</div>
-            <div style={{ fontSize:22, fontWeight:800 }}>🎯 BMW Karir — Data Siswa</div>
+            <div style={{ fontSize:22, fontWeight:800 }}>🎯 WBM Karir — Data Siswa</div>
             <div style={{ fontSize:11, color:"#888", marginTop:2 }}>Holland RIASEC · Big Five · Efikasi Diri · {data.length} peserta</div>
           </div>
           <div style={{ display:"flex", gap:8 }}>
@@ -493,8 +579,8 @@ function DashboardPanitiaMain({ onLogout }) {
                 style={{ flex:1, minWidth:200, border:"1.5px solid #E4E0D8", borderRadius:8, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none" }} />
               {["Semua","Bekerja","Kuliah","Wirausaha"].map(r => (
                 <button key={r} onClick={()=>setFilterRek(r)}
-                  style={s.btn(filterRek===r?"#fff":BMW_COLOR[r]||"#111", filterRek===r?(BMW_COLOR[r]||"#111"):"#fff")}>
-                  {r==="Semua"?"Semua":BMW_ICON[r]+" "+r}
+                  style={s.btn(filterRek===r?"#fff":WBM_COLOR[r]||"#111", filterRek===r?(WBM_COLOR[r]||"#111"):"#fff")}>
+                  {r==="Semua"?"Semua":WBM_ICON[r]+" "+r}
                 </button>
               ))}
               <select value={filterKelas} onChange={e=>setFilterKelas(e.target.value)}
@@ -554,7 +640,7 @@ function DashboardPanitiaMain({ onLogout }) {
         {tab === "statistik" && (
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
             <div style={s.card}>
-              <div style={{ fontWeight:700, marginBottom:16 }}>📊 Distribusi BMW</div>
+              <div style={{ fontWeight:700, marginBottom:16 }}>📊 Distribusi WBM</div>
               {[["Bekerja",stats.bekerja,"#2563EB"],["Kuliah",stats.kuliah,"#7C3AED"],["Wirausaha",stats.wirausaha,"#D97706"]].map(([l,v,c])=>(
                 <div key={l} style={{ marginBottom:12 }}>
                   <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, fontWeight:600, marginBottom:4 }}>
@@ -624,10 +710,19 @@ function DashboardPanitiaMain({ onLogout }) {
               <button onClick={()=>setSelected(null)} style={{ background:"none", border:"none", color:"#aaa", fontSize:22, cursor:"pointer" }}>✕</button>
             </div>
             <div style={{ padding:24 }}>
-              <div style={{ background:BMW_COLOR[selected.rekomendasi], color:"#fff", borderRadius:10, padding:"16px 20px", marginBottom:16, textAlign:"center" }}>
+              <div style={{ background:WBM_COLOR[selected.rekomendasi], color:"#fff", borderRadius:10, padding:"16px 20px", marginBottom:16, textAlign:"center" }}>
                 <div style={{ fontSize:11, opacity:.8, marginBottom:4, letterSpacing:".1em", textTransform:"uppercase" }}>Rekomendasi</div>
-                <div style={{ fontSize:22, fontWeight:800 }}>{BMW_ICON[selected.rekomendasi]} {selected.rekomendasi==="Kuliah"?"Melanjutkan Kuliah":selected.rekomendasi}</div>
+                <div style={{ fontSize:22, fontWeight:800 }}>{WBM_ICON[selected.rekomendasi]} {selected.rekomendasi==="Kuliah"?"Melanjutkan Kuliah":selected.rekomendasi}</div>
               </div>
+              {(() => {
+                const d = selected.detailRekomendasi ||
+                  HOLLAND_DETAIL[selected.rekomendasi]?.[String(selected.hollandKode||'')[0]];
+                return d ? (
+                  <div style={{ background:WBM_COLOR[selected.rekomendasi]+"18", border:`1.5px solid ${WBM_COLOR[selected.rekomendasi]}40`, borderRadius:8, padding:"10px 14px", marginBottom:14, fontSize:12, color:"#374151", lineHeight:1.7 }}>
+                    <span style={{ fontWeight:700, color:WBM_COLOR[selected.rekomendasi] }}>Detail bidang: </span>{d}
+                  </div>
+                ) : null;
+              })()}
               <ScoreBar label="💼 Bekerja" value={selected.skor_B} color="#2563EB" />
               <ScoreBar label="🎓 Kuliah" value={selected.skor_M} color="#7C3AED" />
               <ScoreBar label="🚀 Wirausaha" value={selected.skor_W} color="#D97706" />
