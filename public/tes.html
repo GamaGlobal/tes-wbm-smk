@@ -407,7 +407,7 @@ function revScore(v){return 6-v;}
 const TOTAL_SOAL = 180;
 document.addEventListener('change',()=>{ updateTabProgress(); });
 
-let timerVal=100*60, timerInterval, testStarted=false, violations=0;
+let timerVal=100*60, timerInterval, testStarted=false, violations=0, isSubmitting=false;
 function startTimer(){
   timerInterval=setInterval(()=>{
     timerVal--;
@@ -485,18 +485,98 @@ function startTest(){
   startTimer();
 }
 
+// ─── SUBMIT HELPER: random jitter + exponential backoff retry ───────────────
+// Tujuan: 460 siswa submit "bersamaan" → tersebar acak 0–30 dtk,
+//         sehingga Apps Script tidak menerima >~15 req/dtk sekaligus.
+// Retry  : hingga MAX_RETRY kali dengan jeda eksponensial + jitter kecil.
+const SUBMIT_JITTER_MAX = 8000;    // sebar awal: 0–8 detik acak
+const MAX_RETRY         = 5;       // maks percobaan kirim
+const RETRY_BASE_MS     = 2000;    // jeda dasar retry (2 dtk × 2^n)
+
+function randomJitter(max){ return Math.floor(Math.random() * max); }
+
+// Update kotak status di halaman sukses (berjalan di background)
+function setSendStatus(html){
+  const el = document.getElementById('send-status');
+  if(el) el.innerHTML = html;
+}
+
+// Simpan payload ke sessionStorage sebagai antrian cadangan
+function enqueue(payload){
+  try{
+    const q = JSON.parse(sessionStorage.getItem('wbm_q')||'[]');
+    q.push(payload);
+    sessionStorage.setItem('wbm_q', JSON.stringify(q));
+  } catch(e){}
+}
+
+async function sendWithRetry(payload, attempt=1){
+  setSendStatus(`<span style="color:#F59E0B">⏳ Mengirim data… (percobaan ${attempt}/${MAX_RETRY})</span>`);
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    // mode no-cors → respons opaque; tidak throw = dianggap terkirim
+    setSendStatus(`<span style="color:#22C55E">✅ Data tersimpan di server panitia.</span>`);
+  } catch(err) {
+    if(attempt < MAX_RETRY){
+      const delay = RETRY_BASE_MS * Math.pow(2, attempt - 1) + randomJitter(1500);
+      const delaySec = Math.ceil(delay / 1000);
+      setSendStatus(`<span style="color:#F59E0B">⚠️ Koneksi lambat, mencoba ulang dalam ${delaySec} dtk… (${attempt}/${MAX_RETRY})</span>`);
+      setTimeout(()=> sendWithRetry(payload, attempt + 1), delay);
+    } else {
+      // Semua retry habis → simpan antrian, tampilkan warning + tombol kirim ulang
+      enqueue(payload);
+      setSendStatus(`
+        <div style="background:#FEF9C3;border:1.5px solid #FDE047;border-radius:10px;padding:14px 16px;text-align:left">
+          <div style="font-weight:700;color:#92400E;margin-bottom:6px">⚠️ Data belum tersimpan ke server</div>
+          <div style="font-size:12px;color:#78350F;margin-bottom:12px">
+            Koneksi ke server panitia gagal setelah 5 percobaan.<br>
+            Data <strong>tersimpan sementara</strong> di browser ini. Jangan tutup tab.<br>
+            Tekan tombol di bawah atau lapor ke pengawas.
+          </div>
+          <button onclick="retryQueued()" style="background:#D97706;color:#fff;border:none;padding:10px 22px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit">
+            🔁 Kirim Ulang Sekarang
+          </button>
+        </div>`);
+    }
+  }
+}
+
+// Tombol kirim ulang manual — ambil dari antrian sessionStorage
+async function retryQueued(){
+  const q = JSON.parse(sessionStorage.getItem('wbm_q')||'[]');
+  if(!q.length){ setSendStatus(`<span style="color:#22C55E">✅ Tidak ada data yang perlu dikirim ulang.</span>`); return; }
+  setSendStatus(`<span style="color:#F59E0B">⏳ Mengirim ulang…</span>`);
+  try {
+    for(const p of q){
+      await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+    }
+    sessionStorage.removeItem('wbm_q');
+    setSendStatus(`<span style="color:#22C55E">✅ Berhasil dikirim ulang! Data sudah di server panitia.</span>`);
+  } catch(e){
+    setSendStatus(`<span style="color:#EF4444">❌ Masih gagal. Mohon lapor ke pengawas dengan menyebut nama: <strong>${q[0]?.nama||'-'}</strong></span>`);
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function submitTes(auto=false){
+  if(isSubmitting) return;   // tolak double-submit
+  isSubmitting = true;
+
   const fields=getAllFields();
   const kogFields=getKognitifFields();
   const unanswered=fields.filter(n=>getValInt(n)===null);
   const kogUnanswered=kogFields.filter(n=>getVal(n)===null);
   if(!auto && (unanswered.length>0 || kogUnanswered.length>0)){
+    isSubmitting = false;    // validasi gagal → boleh coba lagi
     document.getElementById('err2').style.display='block';
     document.querySelectorAll('.item').forEach(el=>el.classList.remove('item-unanswered'));
     unanswered.forEach(n=>{const el=document.getElementById(`item-${n}`);if(el)el.classList.add('item-unanswered');});
     kogUnanswered.forEach(n=>{const el=document.getElementById(`item-${n}`);if(el)el.classList.add('item-unanswered');});
     const firstMissed = unanswered[0]||kogUnanswered[0];
-    // Navigate to the correct tab
     if(firstMissed){
       const tabFor = firstMissed.startsWith('h_')?'holland':firstMissed.startsWith('bf_')?'bigfive':firstMissed.startsWith('ef_')?'efikasi':'kognitif';
       switchTab(tabFor);
@@ -508,7 +588,7 @@ function submitTes(auto=false){
     return;
   }
   document.getElementById('submitBtn').disabled=true;
-  document.getElementById('submitBtn').textContent='⏳ Mengirim data…';
+  setSubmitStatus('⏳ Menyiapkan pengiriman…');
 
   // Holland
   const H={};
@@ -571,6 +651,7 @@ function submitTes(auto=false){
   const detailRek = HOLLAND_DETAIL[rek]?.[hollandKode[0]] || '';
 
   const payload={
+    submitToken: `${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
     timestamp:new Date().toISOString(),
     nama:document.getElementById('f-nama').value,
     nisn:document.getElementById('f-nisn').value,
@@ -591,41 +672,37 @@ function submitTes(auto=false){
     ]))
   };
 
-  fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
-    .then(()=>showSukses(payload.nama,rek,detailRek,sB,sM,sW,KOG))
-    .catch(()=>{
-      try{const s=JSON.parse(sessionStorage.getItem('wbm_q')||'[]');s.push(payload);sessionStorage.setItem('wbm_q',JSON.stringify(s));}catch(e){}
-      showSukses(payload.nama,rek,detailRek,sB,sM,sW,KOG);
-    });
+  // ── Tampilkan halaman sukses LANGSUNG — pengiriman berjalan di background ──
+  showSukses(payload.nama);
+
+  // ── Jitter: tunda acak 0–8 dtk supaya 460 siswa tidak menghantam serentak ──
+  const jitter = auto ? 0 : randomJitter(SUBMIT_JITTER_MAX);
+  const jitterSec = Math.ceil(jitter / 1000);
+  if(jitter > 0){
+    setSendStatus(`<span style="color:#F59E0B">⏳ Pengiriman dimulai dalam ${jitterSec} dtk…</span>`);
+  }
+  setTimeout(() => sendWithRetry(payload), jitter);
 }
 
-function showSukses(nama,rek,detail,sB,sM,sW,KOG){
+function showSukses(nama){
   clearInterval(timerInterval);
   ['header','.prog-wrap','main','#tab-nav'].forEach(s=>{const el=document.querySelector(s);if(el)el.style.display='none';});
   document.getElementById('tab-warning').style.display='none';
-  const rekColor={Bekerja:'#2563EB',Kuliah:'#7C3AED',Wirausaha:'#D97706'};
-  const rekIcon={Bekerja:'💼',Kuliah:'🎓',Wirausaha:'🚀'};
-  const rekLabel={Bekerja:'Bekerja',Kuliah:'Melanjutkan Kuliah',Wirausaha:'Wirausaha'};
-  const c=rekColor[rek]||'#111';
-  const kogLabel=v=>v>=80?'Tinggi':v>=60?'Cukup':v>=40?'Sedang':'Perlu Dikembangkan';
   document.getElementById('sukses').innerHTML=`
     <div class="s-ico">✅</div>
-    <h2>Jawaban Berhasil Dikirim!</h2>
-    <p>Terima kasih, <strong>${nama||'Siswa'}</strong>.</p>
-    <div style="margin:20px auto;max-width:440px;background:${c}15;border:2px solid ${c}40;border-radius:14px;padding:20px;text-align:left">
-      <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:${c};margin-bottom:6px">${rekIcon[rek]} Rekomendasi Awal — ${rekLabel[rek]}</div>
-      <div style="font-size:13px;color:#111;margin-bottom:12px">${detail||'Detail akan disampaikan panitia.'}</div>
-      <div style="display:flex;gap:10px;font-size:12px;flex-wrap:wrap;color:#555">
-        <span>💼 Bekerja <strong style="color:#2563EB">${sB}%</strong></span>
-        <span>🎓 Kuliah <strong style="color:#7C3AED">${sM}%</strong></span>
-        <span>🚀 Wirausaha <strong style="color:#D97706">${sW}%</strong></span>
-      </div>
-      <div style="margin-top:12px;padding-top:10px;border-top:1px solid ${c}30;font-size:11px;color:#666">
-        🧠 Kognitif: <strong>${KOG.total}/20</strong> benar (${KOG.pct}% — ${kogLabel(KOG.pct)}) &nbsp;|&nbsp;
-        Numerik ${KOG.numerik}% · Verbal ${KOG.verbal}% · Logika ${KOG.logika}%
+    <h2>Jawaban Berhasil Dikumpulkan!</h2>
+    <p>Terima kasih, <strong>${nama||'Siswa'}</strong>. Jawabanmu sudah tercatat.</p>
+    <div style="margin:20px auto;max-width:440px;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:14px;padding:20px">
+      <div style="font-size:14px;color:#166534;font-weight:600;margin-bottom:8px">📋 Apa yang terjadi sekarang?</div>
+      <div style="font-size:13px;color:#166534;line-height:1.8">
+        • Hasil analisis akan disampaikan oleh <strong>panitia / guru BK</strong><br>
+        • Jangan menutup halaman ini sampai pengawas memberi izin<br>
+        • Silakan letakkan perangkat dan tunggu instruksi
       </div>
     </div>
-    <p style="font-size:12px;color:#aaa;margin-top:8px">Detail lengkap akan disampaikan oleh panitia / guru BK.<br>Silakan kumpulkan perangkat kepada pengawas.</p>
+    <div id="send-status" style="max-width:440px;margin:12px auto;font-size:12px;min-height:20px">
+      <span style="color:#F59E0B">⏳ Menyiapkan pengiriman…</span>
+    </div>
   `;
   document.getElementById('sukses').style.display='block';
   window.scrollTo({top:0});
