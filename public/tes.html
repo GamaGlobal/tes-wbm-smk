@@ -49,6 +49,24 @@ main{max-width:820px;margin:0 auto;padding:26px 16px 64px}
 .err-msg{background:#FEE2E2;border:1px solid #FCA5A5;border-radius:8px;padding:12px 16px;font-size:13px;color:#DC2626;margin-bottom:14px;display:none}
 .submit-btn{width:100%;padding:15px;background:var(--ink);color:#fff;border:none;border-radius:var(--radius);font-family:inherit;font-size:16px;font-weight:800;cursor:pointer;transition:background .2s}
 .submit-btn:hover{background:#333}.submit-btn:disabled{background:#aaa;cursor:not-allowed}
+/* Loading overlay saat submit */
+#loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px;color:#fff;text-align:center;padding:32px}
+#loading-overlay .lo-spinner{width:52px;height:52px;border:5px solid rgba(255,255,255,.2);border-top-color:#F59E0B;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading-overlay .lo-title{font-size:18px;font-weight:800}
+#loading-overlay .lo-sub{font-size:13px;color:#bbb;max-width:300px;line-height:1.7}
+/* Unlock panel panitia */
+#unlock-panel{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;display:none;align-items:center;justify-content:center;padding:24px}
+.unlock-box{background:#fff;border-radius:16px;padding:28px 24px;width:100%;max-width:340px;text-align:center}
+.unlock-box h3{font-size:16px;font-weight:800;margin-bottom:6px}
+.unlock-box p{font-size:12px;color:#6B6862;margin-bottom:16px}
+.unlock-box input{width:100%;border:2px solid #E4E0D8;border-radius:8px;padding:11px 14px;font-size:20px;font-family:inherit;font-weight:700;text-align:center;letter-spacing:.2em;outline:none;margin-bottom:10px}
+.unlock-box input:focus{border-color:#2563EB}
+.unlock-box .ub-btns{display:flex;gap:8px}
+.unlock-box .ub-btns button{flex:1;padding:11px;border:none;border-radius:8px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer}
+.ub-confirm{background:#111;color:#fff}
+.ub-cancel{background:#E4E0D8;color:#111}
+#unlock-msg{font-size:12px;color:#EF4444;min-height:18px;margin-bottom:8px}
 #sukses{display:none;text-align:center;padding:80px 20px}
 #sukses .s-ico{font-size:64px;margin-bottom:16px}
 #sukses h2{font-size:26px;font-weight:800;margin-bottom:10px}
@@ -85,6 +103,29 @@ main{max-width:820px;margin:0 auto;padding:26px 16px 64px}
 <body>
 
 <div id="tab-warning">⚠️ PERINGATAN: Jangan berpindah tab! Pelanggaran ke-<span id="vio-count">0</span></div>
+
+<!-- Loading overlay saat memvalidasi & memproses submit -->
+<div id="loading-overlay">
+  <div class="lo-spinner"></div>
+  <div class="lo-title" id="lo-title">Memvalidasi jawaban…</div>
+  <div class="lo-sub" id="lo-sub">Harap tunggu sebentar</div>
+</div>
+
+<!-- Panel buka kunci panitia -->
+<div id="unlock-panel">
+  <div class="unlock-box">
+    <div style="font-size:32px;margin-bottom:8px">🔑</div>
+    <h3>Buka Kunci Tes — Panitia</h3>
+    <p>Masukkan PIN panitia untuk membuka kunci dan mereset pelanggaran siswa ini.</p>
+    <input type="password" id="unlock-pin-input" placeholder="····" maxlength="8"
+      onkeydown="if(event.key==='Enter') doUnlock()">
+    <div id="unlock-msg"></div>
+    <div class="ub-btns">
+      <button class="ub-cancel" onclick="document.getElementById('unlock-panel').style.display='none'">Batal</button>
+      <button class="ub-confirm" onclick="doUnlock()">✅ Buka Kunci</button>
+    </div>
+  </div>
+</div>
 
 <div id="ac-overlay">
   <div style="font-size:52px;margin-bottom:16px">📋</div>
@@ -419,6 +460,8 @@ function startTimer(){
   },1000);
 }
 
+const UNLOCK_PIN = '9271'; // PIN panitia — ganti sesuai kebutuhan
+
 document.addEventListener('visibilitychange',()=>{
   if(!testStarted) return;
   if(document.hidden){
@@ -426,11 +469,35 @@ document.addEventListener('visibilitychange',()=>{
     document.getElementById('vio-count').textContent=violations;
     document.getElementById('tab-warning').style.display='block';
     if(violations>=3){
-      document.getElementById('tab-warning').innerHTML='🔒 TES DIKUNCI — Hubungi panitia.';
+      document.getElementById('tab-warning').innerHTML=
+        '🔒 TES DIKUNCI — Hubungi panitia. &nbsp;<button onclick="showUnlockPanel()" style="background:#fff;color:#EF4444;border:none;border-radius:6px;padding:3px 10px;font-weight:700;cursor:pointer;font-size:12px">🔑 Buka Kunci (Panitia)</button>';
       document.getElementById('submitBtn').disabled=true;
     } else { setTimeout(()=>document.getElementById('tab-warning').style.display='none',4000); }
   }
 });
+
+function showUnlockPanel(){
+  document.getElementById('unlock-panel').style.display='flex';
+  document.getElementById('unlock-pin-input').value='';
+  document.getElementById('unlock-pin-input').focus();
+  document.getElementById('unlock-msg').textContent='';
+}
+
+function doUnlock(){
+  const pin = document.getElementById('unlock-pin-input').value.trim();
+  if(pin === UNLOCK_PIN){
+    violations = 0;
+    document.getElementById('vio-count').textContent='0';
+    document.getElementById('tab-warning').innerHTML=
+      '⚠️ PERINGATAN: Jangan berpindah tab! Pelanggaran ke-<span id="vio-count">0</span>';
+    document.getElementById('tab-warning').style.background='#EF4444';
+    document.getElementById('tab-warning').style.display='none';
+    document.getElementById('submitBtn').disabled=false;
+    document.getElementById('unlock-panel').style.display='none';
+  } else {
+    document.getElementById('unlock-msg').textContent='❌ PIN salah, coba lagi.';
+  }
+}
 window.addEventListener('beforeunload',e=>{if(testStarted){e.preventDefault();e.returnValue='';}});
 document.addEventListener('contextmenu',e=>{if(testStarted)e.preventDefault();});
 document.addEventListener('keydown',e=>{
@@ -562,16 +629,31 @@ async function retryQueued(){
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+function showLoading(title, sub){
+  document.getElementById('lo-title').textContent = title;
+  document.getElementById('lo-sub').textContent   = sub;
+  document.getElementById('loading-overlay').style.display = 'flex';
+}
+function hideLoading(){
+  document.getElementById('loading-overlay').style.display = 'none';
+}
+
 function submitTes(auto=false){
-  if(isSubmitting) return;   // tolak double-submit
+  if(isSubmitting) return;
   isSubmitting = true;
+
+  // 1. Tampilkan overlay "memvalidasi" langsung saat tombol ditekan
+  if(!auto) showLoading('Memvalidasi jawaban…', 'Harap tunggu sebentar');
 
   const fields=getAllFields();
   const kogFields=getKognitifFields();
   const unanswered=fields.filter(n=>getValInt(n)===null);
   const kogUnanswered=kogFields.filter(n=>getVal(n)===null);
+
   if(!auto && (unanswered.length>0 || kogUnanswered.length>0)){
-    isSubmitting = false;    // validasi gagal → boleh coba lagi
+    // Validasi gagal → tutup overlay, reset flag, tandai soal
+    hideLoading();
+    isSubmitting = false;
     document.getElementById('err2').style.display='block';
     document.querySelectorAll('.item').forEach(el=>el.classList.remove('item-unanswered'));
     unanswered.forEach(n=>{const el=document.getElementById(`item-${n}`);if(el)el.classList.add('item-unanswered');});
@@ -587,8 +669,10 @@ function submitTes(auto=false){
     }
     return;
   }
+
+  // 2. Validasi lolos → update overlay "memproses"
+  if(!auto) showLoading('Memproses jawaban…', 'Menghitung skor, sebentar lagi…');
   document.getElementById('submitBtn').disabled=true;
-  setSubmitStatus('⏳ Menyiapkan pengiriman…');
 
   // Holland
   const H={};
@@ -672,10 +756,11 @@ function submitTes(auto=false){
     ]))
   };
 
-  // ── Tampilkan halaman sukses LANGSUNG — pengiriman berjalan di background ──
+  // 3. Tutup overlay → tampilkan halaman sukses LANGSUNG
+  hideLoading();
   showSukses(payload.nama);
 
-  // ── Jitter: tunda acak 0–8 dtk supaya 460 siswa tidak menghantam serentak ──
+  // 4. Jitter 0–8 dtk di background — siswa sudah lihat halaman sukses, tidak terasa lagi
   const jitter = auto ? 0 : randomJitter(SUBMIT_JITTER_MAX);
   const jitterSec = Math.ceil(jitter / 1000);
   if(jitter > 0){
