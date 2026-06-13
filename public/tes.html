@@ -54,6 +54,32 @@ main{max-width:820px;margin:0 auto;padding:26px 16px 64px}
 #sukses h2{font-size:26px;font-weight:800;margin-bottom:10px}
 #sukses p{color:var(--muted);font-size:15px;line-height:1.8}
 .dim-desc{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;padding:8px 12px;background:#FAFAF8;border-radius:8px;border-left:3px solid #E4E0D8}
+.mc-opts{display:flex;flex-direction:column;gap:7px;margin-top:8px}
+.mc-opt label{display:flex;align-items:center;gap:10px;border:1.5px solid var(--border);border-radius:8px;padding:9px 13px;cursor:pointer;font-size:13px;background:#fff;transition:all .14s}
+.mc-opt input[type=radio]{display:none}
+.mc-opt input:checked+.mc-opt-body{color:var(--blue);font-weight:700}
+.mc-opt label:has(input:checked){border-color:var(--blue);background:#EFF6FF}
+.mc-letter{min-width:22px;height:22px;border-radius:6px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--muted);flex-shrink:0}
+.mc-opt label:has(input:checked) .mc-letter{background:var(--blue);color:#fff}
+
+/* ── TAB NAVIGATION ── */
+.tab-nav{background:#fff;border-bottom:2px solid var(--border);position:sticky;top:0;z-index:100;overflow-x:auto;display:flex;gap:0}
+.tab-btn{flex:1;min-width:120px;padding:14px 10px 12px;border:none;background:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .18s;display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap}
+.tab-btn .tb-icon{font-size:20px}
+.tab-btn .tb-label{letter-spacing:.04em}
+.tab-btn .tb-prog{font-size:10px;font-weight:600;opacity:.7}
+.tab-btn.active{color:var(--ink);border-bottom-color:var(--blue)}
+.tab-btn:hover:not(.active){background:#f7f6f3;color:var(--ink)}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+.tab-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:28px;padding-top:20px;border-top:1px solid var(--border)}
+.tab-footer .tf-info{font-size:12px;color:var(--muted)}
+.nav-btn{padding:11px 24px;border:none;border-radius:var(--radius);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:all .18s}
+.nav-btn.prev{background:var(--border);color:var(--ink)}
+.nav-btn.prev:hover{background:#d4d0c8}
+.nav-btn.next{background:var(--ink);color:#fff}
+.nav-btn.next:hover{background:#333}
+.tab-badge{display:inline-block;background:#EF4444;color:#fff;font-size:9px;font-weight:800;border-radius:10px;padding:1px 6px;margin-left:4px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -62,12 +88,13 @@ main{max-width:820px;margin:0 auto;padding:26px 16px 64px}
 
 <div id="ac-overlay">
   <div style="font-size:52px;margin-bottom:16px">📋</div>
-  <h2>Tes Karir BMW — SMK</h2>
+  <h2>Tes Karir WBM — SMK</h2>
   <p>
     ✅ Kerjakan secara <strong>mandiri dan jujur</strong><br>
     ✅ <strong>Jangan berpindah tab</strong> atau minimize browser<br>
     ✅ <strong>Jangan menekan tombol Back</strong><br>
-    ✅ Waktu: <strong>90 menit</strong> · Total <strong>160 soal</strong><br>
+    ✅ Waktu: <strong>100 menit</strong> · Total <strong>180 soal</strong><br>
+    &nbsp;&nbsp;&nbsp;— Holland RIASEC 60 · Big Five 60 · Efikasi 40 · <strong>Kognitif 20</strong><br>
     ✅ Hasil hanya ditampilkan oleh <strong>panitia</strong><br><br>
     Pelanggaran dicatat otomatis dan dilaporkan ke guru BK.
   </p>
@@ -78,83 +105,150 @@ main{max-width:820px;margin:0 auto;padding:26px 16px 64px}
   <div class="hdr-top">
     <div>
       <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:4px">Tes Psikologi Karir · SMK Kelas 1</div>
-      <h1>Tes <span>BMW</span> — Bekerja · Melanjutkan · Wirausaha</h1>
-      <div style="font-size:12px;color:#999;margin-top:3px">Holland RIASEC 60 · Big Five 60 · Efikasi Diri 40 · Total 160 soal</div>
+      <h1>Tes <span>WBM</span> — Wirausaha · Bekerja · Melanjutkan</h1>
+      <div style="font-size:12px;color:#999;margin-top:3px">Holland RIASEC 60 · Big Five 60 · Efikasi Diri 40 · Kognitif 20 · Total 180 soal</div>
     </div>
     <div style="text-align:right;flex-shrink:0">
       <div style="font-size:10px;color:#888">Sisa Waktu</div>
-      <div style="font-size:28px;font-weight:800;color:#F59E0B;font-variant-numeric:tabular-nums" id="timer">90:00</div>
+      <div style="font-size:28px;font-weight:800;color:#F59E0B;font-variant-numeric:tabular-nums" id="timer">100:00</div>
     </div>
   </div>
 </header>
 <div class="prog-wrap">
   <div class="prog-bg"><div class="prog-fill" id="pbar"></div></div>
   <div class="prog-meta">
-    <span id="p-done">0 dari 160 soal dijawab</span>
+    <span id="p-done">0 dari 180 soal dijawab</span>
     <span style="color:#F59E0B;font-weight:700" id="p-pct">0%</span>
   </div>
 </div>
 
+<!-- TAB NAV (injected after test starts) -->
+<div class="tab-nav" id="tab-nav" style="display:none">
+  <button class="tab-btn active" id="tabn-data" onclick="switchTab('data')">
+    <span class="tb-icon">📋</span>
+    <span class="tb-label">Data Diri</span>
+    <span class="tb-prog" id="tp-data"></span>
+  </button>
+  <button class="tab-btn" id="tabn-holland" onclick="switchTab('holland')">
+    <span class="tb-icon">🎯</span>
+    <span class="tb-label">Holland</span>
+    <span class="tb-prog" id="tp-holland">0/60</span>
+  </button>
+  <button class="tab-btn" id="tabn-bigfive" onclick="switchTab('bigfive')">
+    <span class="tb-icon">🧬</span>
+    <span class="tb-label">Big Five</span>
+    <span class="tb-prog" id="tp-bigfive">0/60</span>
+  </button>
+  <button class="tab-btn" id="tabn-efikasi" onclick="switchTab('efikasi')">
+    <span class="tb-icon">💪</span>
+    <span class="tb-label">Efikasi</span>
+    <span class="tb-prog" id="tp-efikasi">0/40</span>
+  </button>
+  <button class="tab-btn" id="tabn-kognitif" onclick="switchTab('kognitif')">
+    <span class="tb-icon">🧠</span>
+    <span class="tb-label">Kognitif</span>
+    <span class="tb-prog" id="tp-kognitif">0/20</span>
+  </button>
+</div>
+
 <main>
-  <div class="id-card">
-    <div style="font-size:13px;font-weight:700;margin-bottom:14px">📋 Data Diri Siswa</div>
-    <div class="id-grid">
-      <div class="fg"><label>Nama Lengkap *</label><input type="text" id="f-nama" placeholder="Nama lengkap…"></div>
-      <div class="fg"><label>NISN *</label><input type="text" id="f-nisn" placeholder="Nomor Induk Siswa…"></div>
-      <div class="fg"><label>Kelas / Jurusan *</label><input type="text" id="f-kelas" placeholder="X TKJ / X AKL…"></div>
-      <div class="fg"><label>Jenis Kelamin</label>
-        <select id="f-jk"><option value="">Pilih…</option><option>Laki-laki</option><option>Perempuan</option></select>
+  <!-- TAB: DATA DIRI -->
+  <div class="tab-pane active" id="tab-data">
+    <div class="id-card">
+      <div style="font-size:13px;font-weight:700;margin-bottom:14px">📋 Data Diri Siswa</div>
+      <div class="id-grid">
+        <div class="fg"><label>Nama Lengkap *</label><input type="text" id="f-nama" placeholder="Nama lengkap…"></div>
+        <div class="fg"><label>NISN *</label><input type="text" id="f-nisn" placeholder="Nomor Induk Siswa…"></div>
+        <div class="fg"><label>Kelas / Jurusan *</label><input type="text" id="f-kelas" placeholder="X TKJ / X AKL…"></div>
+        <div class="fg"><label>Jenis Kelamin</label>
+          <select id="f-jk"><option value="">Pilih…</option><option>Laki-laki</option><option>Perempuan</option></select>
+        </div>
+        <div class="fg"><label>Nama Sekolah</label><input type="text" id="f-sekolah" placeholder="SMK…"></div>
+        <div class="fg"><label>Tanggal Tes</label><input type="date" id="f-tgl"></div>
       </div>
-      <div class="fg"><label>Nama Sekolah</label><input type="text" id="f-sekolah" placeholder="SMK…"></div>
-      <div class="fg"><label>Tanggal Tes</label><input type="date" id="f-tgl"></div>
+    </div>
+    <div class="tab-footer">
+      <span class="tf-info">Isi data diri dengan lengkap dan benar</span>
+      <button class="nav-btn next" onclick="goTab('holland')">Lanjut ke Holland →</button>
     </div>
   </div>
 
-  <!-- HOLLAND -->
-  <div class="sec">
-    <div class="sec-head">
-      <div class="sec-icon" style="background:#DBEAFE">🎯</div>
-      <div>
-        <div style="font-size:15px;font-weight:700">Bagian A — Holland RIASEC</div>
-        <div style="font-size:12px;color:var(--muted)">60 pernyataan · Skala 1 (Sangat Tidak Sesuai) — 5 (Sangat Sesuai)</div>
+  <!-- TAB: HOLLAND -->
+  <div class="tab-pane" id="tab-holland">
+    <div class="sec">
+      <div class="sec-head">
+        <div class="sec-icon" style="background:#DBEAFE">🎯</div>
+        <div>
+          <div style="font-size:15px;font-weight:700">Bagian A — Holland RIASEC</div>
+          <div style="font-size:12px;color:var(--muted)">60 pernyataan · Skala 1 (Sangat Tidak Sesuai) — 5 (Sangat Sesuai)</div>
+        </div>
       </div>
+      <div class="sec-body" id="sec-holland"></div>
     </div>
-    <div class="sec-body" id="sec-holland"></div>
+    <div class="tab-footer">
+      <button class="nav-btn prev" onclick="goTab('data')">← Data Diri</button>
+      <button class="nav-btn next" onclick="goTab('bigfive')">Lanjut ke Big Five →</button>
+    </div>
   </div>
 
-  <!-- BIG FIVE -->
-  <div class="sec">
-    <div class="sec-head">
-      <div class="sec-icon" style="background:#EDE9FE">🧬</div>
-      <div>
-        <div style="font-size:15px;font-weight:700">Bagian B — Big Five Personality</div>
-        <div style="font-size:12px;color:var(--muted)">60 pernyataan · Skala 1 (Sangat Tidak Sesuai) — 5 (Sangat Sesuai)</div>
+  <!-- TAB: BIG FIVE -->
+  <div class="tab-pane" id="tab-bigfive">
+    <div class="sec">
+      <div class="sec-head">
+        <div class="sec-icon" style="background:#EDE9FE">🧬</div>
+        <div>
+          <div style="font-size:15px;font-weight:700">Bagian B — Big Five Personality</div>
+          <div style="font-size:12px;color:var(--muted)">60 pernyataan · Skala 1 (Sangat Tidak Sesuai) — 5 (Sangat Sesuai)</div>
+        </div>
       </div>
+      <div class="sec-body" id="sec-bigfive"></div>
     </div>
-    <div class="sec-body" id="sec-bigfive"></div>
+    <div class="tab-footer">
+      <button class="nav-btn prev" onclick="goTab('holland')">← Holland</button>
+      <button class="nav-btn next" onclick="goTab('efikasi')">Lanjut ke Efikasi →</button>
+    </div>
   </div>
 
-  <!-- EFIKASI DIRI -->
-  <div class="sec">
-    <div class="sec-head">
-      <div class="sec-icon" style="background:#FEF3C7">💪</div>
-      <div>
-        <div style="font-size:15px;font-weight:700">Bagian C — Efikasi Diri</div>
-        <div style="font-size:12px;color:var(--muted)">40 pernyataan · Adaptasi Schwarzer General Self-Efficacy Scale</div>
+  <!-- TAB: EFIKASI -->
+  <div class="tab-pane" id="tab-efikasi">
+    <div class="sec">
+      <div class="sec-head">
+        <div class="sec-icon" style="background:#FEF3C7">💪</div>
+        <div>
+          <div style="font-size:15px;font-weight:700">Bagian C — Efikasi Diri</div>
+          <div style="font-size:12px;color:var(--muted)">40 pernyataan · Adaptasi Schwarzer General Self-Efficacy Scale</div>
+        </div>
       </div>
+      <div class="sec-body" id="sec-efikasi"></div>
     </div>
-    <div class="sec-body" id="sec-efikasi"></div>
+    <div class="tab-footer">
+      <button class="nav-btn prev" onclick="goTab('bigfive')">← Big Five</button>
+      <button class="nav-btn next" onclick="goTab('kognitif')">Lanjut ke Kognitif →</button>
+    </div>
   </div>
 
-  <div class="err-msg" id="err2">⚠️ Harap jawab semua soal. Soal yang belum dijawab sudah ditandai merah.</div>
-  <button class="submit-btn" id="submitBtn" onclick="submitTes()">📤 Kirim Jawaban ke Panitia</button>
+  <!-- TAB: KOGNITIF -->
+  <div class="tab-pane" id="tab-kognitif">
+    <div class="sec">
+      <div class="sec-head">
+        <div class="sec-icon" style="background:#CCFBF1">🧠</div>
+        <div>
+          <div style="font-size:15px;font-weight:700">Bagian D — Tes Kemampuan Kognitif</div>
+          <div style="font-size:12px;color:var(--muted)">20 soal · Numerik (7) · Verbal (7) · Logika (6) · Pilih jawaban yang paling tepat</div>
+        </div>
+      </div>
+      <div class="sec-body" id="sec-kognitif"></div>
+    </div>
+    <div class="err-msg" id="err2">⚠️ Harap jawab semua soal. Soal yang belum dijawab sudah ditandai merah.</div>
+    <div class="tab-footer">
+      <button class="nav-btn prev" onclick="goTab('efikasi')">← Efikasi</button>
+      <button class="submit-btn" id="submitBtn" onclick="submitTes()" style="width:auto;padding:11px 28px;font-size:14px">📤 Kirim Jawaban ke Panitia</button>
+    </div>
+  </div>
+
 </main>
 
-<div id="sukses">
-  <div class="s-ico">✅</div>
-  <h2>Jawaban Berhasil Dikirim!</h2>
-  <p>Terima kasih, <strong id="s-nama"></strong>.<br>Hasil analisis BMW akan disampaikan oleh panitia.<br>Silakan kumpulkan perangkat kepada pengawas.</p>
-</div>
+<div id="sukses" style="display:none;text-align:center;padding:80px 20px"></div>
 
 <script>
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-m8GlmQnk24NoH8lqrnXiJuRyTt3MVKqRjza5ZwB1GRxrTMHEHJ8GFaTurEuVD2M/exec";
@@ -196,6 +290,39 @@ const efikasiItems = {
 const reverseEfikasi = {umum:[2,8],akademik:[2,6],vokasional:[2,6],wirausaha:[2,6]};
 
 // ═══════════════════════════════════════════
+// DATA SOAL KOGNITIF (20 item: 7 numerik, 7 verbal, 6 logika)
+// Setiap soal: { tipe, soal, pilihan:[A,B,C,D], jawaban:'A'/'B'/'C'/'D' }
+// ═══════════════════════════════════════════
+const kognitifItems = [
+  // ── NUMERIK (7 soal)
+  { tipe:"Numerik", soal:"Jika harga barang Rp 120.000 didiskon 25%, berapa harga setelah diskon?", pilihan:["Rp 90.000","Rp 95.000","Rp 85.000","Rp 100.000"], jawaban:"A" },
+  { tipe:"Numerik", soal:"Sebuah toko menjual 240 produk dalam 6 hari. Rata-rata produk yang terjual per hari adalah…", pilihan:["35","40","45","50"], jawaban:"B" },
+  { tipe:"Numerik", soal:"Deret berikut: 3, 6, 12, 24, … Bilangan selanjutnya adalah…", pilihan:["36","42","48","52"], jawaban:"C" },
+  { tipe:"Numerik", soal:"Jika 5 pekerja menyelesaikan pekerjaan dalam 12 hari, berapa hari yang dibutuhkan 10 pekerja untuk pekerjaan yang sama?", pilihan:["4 hari","6 hari","8 hari","10 hari"], jawaban:"B" },
+  { tipe:"Numerik", soal:"Luas segitiga dengan alas 14 cm dan tinggi 10 cm adalah…", pilihan:["140 cm²","100 cm²","70 cm²","60 cm²"], jawaban:"C" },
+  { tipe:"Numerik", soal:"Persentase dari 45 terhadap 180 adalah…", pilihan:["20%","25%","30%","35%"], jawaban:"B" },
+  { tipe:"Numerik", soal:"Sebuah mobil menempuh 180 km dalam 3 jam. Berapa kecepatan rata-ratanya?", pilihan:["50 km/jam","55 km/jam","60 km/jam","65 km/jam"], jawaban:"C" },
+  // ── VERBAL (7 soal)
+  { tipe:"Verbal", soal:"Kata yang berlawanan makna dengan 'RAJIN' adalah…", pilihan:["Cermat","Malas","Lambat","Boros"], jawaban:"B" },
+  { tipe:"Verbal", soal:"'Dokter' berhubungan dengan 'Rumah Sakit' seperti 'Guru' berhubungan dengan…", pilihan:["Buku","Murid","Sekolah","Pelajaran"], jawaban:"C" },
+  { tipe:"Verbal", soal:"Kalimat mana yang menggunakan kata 'efektif' secara tepat?", pilihan:["Dia bekerja secara efektif menggunakan banyak tenaga.","Metode ini efektif karena menghasilkan hasil yang baik dengan usaha minimal.","Efektif berarti melakukan banyak hal sekaligus.","Pekerjaan efektif adalah pekerjaan yang mahal."], jawaban:"B" },
+  { tipe:"Verbal", soal:"PREDIKSI : PERKIRAAN = INOVASI : …", pilihan:["Tradisi","Pembaharuan","Teknologi","Ilmu"], jawaban:"B" },
+  { tipe:"Verbal", soal:"Manakah kata yang TIDAK satu kelompok dengan lainnya?", pilihan:["Apel","Mangga","Wortel","Pisang"], jawaban:"C" },
+  { tipe:"Verbal", soal:"Bacaan: 'Literasi keuangan penting diajarkan sejak dini agar generasi muda mampu mengelola uang dengan bijak.' Simpulan yang tepat adalah…", pilihan:["Uang adalah hal terpenting dalam hidup.","Pendidikan keuangan perlu dimulai sejak usia muda.","Generasi muda tidak bisa mengelola uang.","Literasi hanya tentang membaca dan menulis."], jawaban:"B" },
+  { tipe:"Verbal", soal:"Persamaan kata (sinonim) dari 'KAPABEL' adalah…", pilihan:["Lemah","Mampu","Kaku","Keras"], jawaban:"B" },
+  // ── LOGIKA (6 soal)
+  { tipe:"Logika", soal:"Semua siswa SMK wajib mengikuti PKL. Budi adalah siswa SMK. Kesimpulan yang benar adalah…", pilihan:["Budi mungkin mengikuti PKL.","Budi tidak perlu mengikuti PKL.","Budi wajib mengikuti PKL.","PKL hanya untuk sebagian siswa."], jawaban:"C" },
+  { tipe:"Logika", soal:"Jika hari ini Senin, maka dua hari setelah besok adalah…", pilihan:["Rabu","Kamis","Jumat","Sabtu"], jawaban:"B" },
+  { tipe:"Logika", soal:"Deret huruf: A, C, E, G, … Huruf selanjutnya adalah…", pilihan:["H","I","J","K"], jawaban:"B" },
+  { tipe:"Logika", soal:"Perhatikan pola: 2, 5, 10, 17, 26, … Bilangan berikutnya adalah…", pilihan:["35","36","37","38"], jawaban:"C" },
+  { tipe:"Logika", soal:"Dari 30 siswa, 18 suka Matematika, 15 suka Bahasa Indonesia, dan 8 suka keduanya. Berapa siswa yang tidak suka keduanya?", pilihan:["3","5","7","8"], jawaban:"B" },
+  { tipe:"Logika", soal:"Jika KUCING dikode menjadi MWEKPI, maka ANJING dikode menjadi…", pilihan:["CPNKPI","CPLKPI","CPNKHK","CPNKPI"], jawaban:"A" },
+];
+
+const kognitifTipeColor = { Numerik:"#D97706", Verbal:"#7C3AED", Logika:"#0D9488" };
+const kognitifTipeBg    = { Numerik:"#FEF3C7", Verbal:"#EDE9FE", Logika:"#CCFBF1" };
+
+// ═══════════════════════════════════════════
 // RENDER
 // ═══════════════════════════════════════════
 let gNum = 0;
@@ -233,6 +360,37 @@ renderSection('sec-holland', hollandItems, 'h', 0);
 renderSection('sec-bigfive', bigFiveItems, 'bf', 60);
 renderSection('sec-efikasi', efikasiItems, 'ef', 120);
 
+// Render soal kognitif pilihan ganda
+function renderKognitif() {
+  let html = '', currentTipe = '';
+  kognitifItems.forEach((item, idx) => {
+    if (item.tipe !== currentTipe) {
+      currentTipe = item.tipe;
+      html += `<div class="sub-lbl" style="background:${kognitifTipeBg[item.tipe]};color:${kognitifTipeColor[item.tipe]}">${item.tipe}</div>`;
+    }
+    const letters = ['A','B','C','D'];
+    const opts = item.pilihan.map((p, pi) => `
+      <div class="mc-opt">
+        <label>
+          <input type="radio" name="kog_${idx}" value="${letters[pi]}">
+          <span class="mc-letter">${letters[pi]}</span>
+          <span class="mc-opt-body">${p}</span>
+        </label>
+      </div>`).join('');
+    html += `<div class="item" id="item-kog_${idx}">
+      <div class="item-q">
+        <span class="qnum">${161 + idx}</span>
+        <span>${item.soal}</span>
+      </div>
+      <div class="mc-opts">${opts}</div>
+    </div>`;
+    if (idx < kognitifItems.length - 1 && kognitifItems[idx+1].tipe === item.tipe)
+      html += '<div class="divider"></div>';
+  });
+  document.getElementById('sec-kognitif').innerHTML = html;
+}
+renderKognitif();
+
 function getAllFields(){
   const f=[];
   for(const[k,d] of Object.entries(hollandItems)) d.items.forEach((_,i)=>f.push(`h_${k}_${i}`));
@@ -240,19 +398,16 @@ function getAllFields(){
   for(const[k,d] of Object.entries(efikasiItems)) d.items.forEach((_,i)=>f.push(`ef_${k}_${i}`));
   return f;
 }
-function getVal(n){const el=document.querySelector(`input[name="${n}"]:checked`);return el?parseInt(el.value):null;}
+function getKognitifFields(){ return kognitifItems.map((_,i)=>`kog_${i}`); }
+function getVal(n){const el=document.querySelector(`input[name="${n}"]:checked`);return el?el.value:null;}
+function getValInt(n){const v=getVal(n);return v?parseInt(v):null;}
 function avg(arr){return arr.reduce((a,b)=>a+b,0)/arr.length;}
 function revScore(v){return 6-v;}
 
-document.addEventListener('change',()=>{
-  const all=getAllFields(), done=all.filter(n=>getVal(n)!==null).length;
-  const pct=Math.round(done/160*100);
-  document.getElementById('pbar').style.width=pct+'%';
-  document.getElementById('p-done').textContent=`${done} dari 160 soal dijawab`;
-  document.getElementById('p-pct').textContent=pct+'%';
-});
+const TOTAL_SOAL = 180;
+document.addEventListener('change',()=>{ updateTabProgress(); });
 
-let timerVal=90*60, timerInterval, testStarted=false, violations=0;
+let timerVal=100*60, timerInterval, testStarted=false, violations=0;
 function startTimer(){
   timerInterval=setInterval(()=>{
     timerVal--;
@@ -283,10 +438,48 @@ document.addEventListener('keydown',e=>{
   if(e.key==='F12'||(e.ctrlKey&&['u','U','s','S'].includes(e.key))||(e.ctrlKey&&e.shiftKey&&['I','i','J','j'].includes(e.key))) e.preventDefault();
 });
 
+let currentTab = 'data';
+const TAB_ORDER = ['data','holland','bigfive','efikasi','kognitif'];
+
+function switchTab(name){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('tabn-'+name).classList.add('active');
+  currentTab = name;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function goTab(name){ switchTab(name); }
+
+function updateTabProgress(){
+  const hFields=[];for(const[k,d]of Object.entries(hollandItems))d.items.forEach((_,i)=>hFields.push(`h_${k}_${i}`));
+  const hDone=hFields.filter(n=>getValInt(n)!==null).length;
+  document.getElementById('tp-holland').textContent=`${hDone}/60`;
+  document.getElementById('tabn-holland').style.borderBottomColor=hDone===60?'#22C55E':'';
+  const bFields=[];for(const[k,d]of Object.entries(bigFiveItems))d.items.forEach((_,i)=>bFields.push(`bf_${k}_${i}`));
+  const bDone=bFields.filter(n=>getValInt(n)!==null).length;
+  document.getElementById('tp-bigfive').textContent=`${bDone}/60`;
+  document.getElementById('tabn-bigfive').style.borderBottomColor=bDone===60?'#22C55E':'';
+  const eFields=[];for(const[k,d]of Object.entries(efikasiItems))d.items.forEach((_,i)=>eFields.push(`ef_${k}_${i}`));
+  const eDone=eFields.filter(n=>getValInt(n)!==null).length;
+  document.getElementById('tp-efikasi').textContent=`${eDone}/40`;
+  document.getElementById('tabn-efikasi').style.borderBottomColor=eDone===40?'#22C55E':'';
+  const kDone=kognitifItems.filter((_,i)=>getVal(`kog_${i}`)!==null).length;
+  document.getElementById('tp-kognitif').textContent=`${kDone}/20`;
+  document.getElementById('tabn-kognitif').style.borderBottomColor=kDone===20?'#22C55E':'';
+  const total=hDone+bDone+eDone+kDone;
+  const pct=Math.round(total/TOTAL_SOAL*100);
+  document.getElementById('pbar').style.width=pct+'%';
+  document.getElementById('p-done').textContent=`${total} dari ${TOTAL_SOAL} soal dijawab`;
+  document.getElementById('p-pct').textContent=pct+'%';
+}
+
 function startTest(){
   document.getElementById('ac-overlay').style.display='none';
   testStarted=true;
   document.getElementById('f-tgl').value=new Date().toISOString().split('T')[0];
+  document.getElementById('tab-nav').style.display='flex';
   const el=document.documentElement;
   if(el.requestFullscreen) el.requestFullscreen().catch(()=>{});
   startTimer();
@@ -294,12 +487,24 @@ function startTest(){
 
 function submitTes(auto=false){
   const fields=getAllFields();
-  const unanswered=fields.filter(n=>getVal(n)===null);
-  if(!auto && unanswered.length>0){
+  const kogFields=getKognitifFields();
+  const unanswered=fields.filter(n=>getValInt(n)===null);
+  const kogUnanswered=kogFields.filter(n=>getVal(n)===null);
+  if(!auto && (unanswered.length>0 || kogUnanswered.length>0)){
     document.getElementById('err2').style.display='block';
     document.querySelectorAll('.item').forEach(el=>el.classList.remove('item-unanswered'));
     unanswered.forEach(n=>{const el=document.getElementById(`item-${n}`);if(el)el.classList.add('item-unanswered');});
-    document.getElementById(`item-${unanswered[0]}`).scrollIntoView({behavior:'smooth',block:'center'});
+    kogUnanswered.forEach(n=>{const el=document.getElementById(`item-${n}`);if(el)el.classList.add('item-unanswered');});
+    const firstMissed = unanswered[0]||kogUnanswered[0];
+    // Navigate to the correct tab
+    if(firstMissed){
+      const tabFor = firstMissed.startsWith('h_')?'holland':firstMissed.startsWith('bf_')?'bigfive':firstMissed.startsWith('ef_')?'efikasi':'kognitif';
+      switchTab(tabFor);
+      setTimeout(()=>{
+        const el=document.getElementById(`item-${firstMissed}`);
+        if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+      },200);
+    }
     return;
   }
   document.getElementById('submitBtn').disabled=true;
@@ -307,12 +512,12 @@ function submitTes(auto=false){
 
   // Holland
   const H={};
-  for(const k of Object.keys(hollandItems)) H[k]=Math.round(avg(hollandItems[k].items.map((_,i)=>getVal(`h_${k}_${i}`)||3))*20);
+  for(const k of Object.keys(hollandItems)) H[k]=Math.round(avg(hollandItems[k].items.map((_,i)=>getValInt(`h_${k}_${i}`)||3))*20);
   const hollandKode=Object.entries(H).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0]).join('');
 
   // Big Five
   const BF={};
-  for(const k of Object.keys(bigFiveItems)) BF[k]=Math.round(avg(bigFiveItems[k].items.map((_,i)=>getVal(`bf_${k}_${i}`)||3))*20);
+  for(const k of Object.keys(bigFiveItems)) BF[k]=Math.round(avg(bigFiveItems[k].items.map((_,i)=>getValInt(`bf_${k}_${i}`)||3))*20);
   BF.Nstabil=100-BF.N;
 
   // Efikasi (dengan reverse)
@@ -320,19 +525,50 @@ function submitTes(auto=false){
   for(const[k,d] of Object.entries(efikasiItems)){
     const revIdx=reverseEfikasi[k]||[];
     const vals=d.items.map((_,i)=>{
-      const raw=getVal(`ef_${k}_${i}`)||3;
+      const raw=getValInt(`ef_${k}_${i}`)||3;
       return revIdx.includes(i)?revScore(raw):raw;
     });
     EF[k]=Math.round(avg(vals)*20);
   }
 
-  // BMW Score
-  const sB_r=(H.R/100)*15+(H.C/100)*15+(BF.C/100)*15+(BF.Nstabil/100)*15+(EF.vokasional/100)*30+(BF.A/100)*10;
-  const sM_r=(H.I/100)*15+(BF.O/100)*15+(BF.C/100)*15+(H.A/100)*10+(EF.akademik/100)*35+(EF.umum/100)*10;
-  const sW_r=(H.E/100)*20+(BF.E/100)*15+(BF.O/100)*15+(EF.wirausaha/100)*35+(EF.umum/100)*15;
+  // Kognitif — hitung skor per tipe
+  const KOG = { numerik:0, verbal:0, logika:0, total:0, pct:0 };
+  let benarNum=0, benarVer=0, benarLog=0;
+  kognitifItems.forEach((item,i)=>{
+    const jawab = getVal(`kog_${i}`);
+    const benar = jawab === item.jawaban;
+    if(benar){
+      if(item.tipe==='Numerik') benarNum++;
+      else if(item.tipe==='Verbal') benarVer++;
+      else benarLog++;
+    }
+  });
+  KOG.numerik = Math.round(benarNum/7*100);
+  KOG.verbal  = Math.round(benarVer/7*100);
+  KOG.logika  = Math.round(benarLog/6*100);
+  KOG.total   = benarNum + benarVer + benarLog; // dari 20
+  KOG.pct     = Math.round(KOG.total/20*100);
+
+  // WBM Score — ditambah bobot kognitif
+  // Kognitif mempengaruhi: kuliah (numerik+verbal), bekerja (numerik+logika), wirausaha (logika+verbal)
+  const kogKuliah  = (KOG.numerik*0.5 + KOG.verbal*0.5) / 100;
+  const kogBekerja = (KOG.numerik*0.5 + KOG.logika*0.5) / 100;
+  const kogWira    = (KOG.logika*0.5  + KOG.verbal*0.5) / 100;
+
+  const sB_r=(H.R/100)*13+(H.C/100)*12+(BF.C/100)*13+(BF.Nstabil/100)*12+(EF.vokasional/100)*25+(BF.A/100)*10+kogBekerja*15;
+  const sM_r=(H.I/100)*13+(BF.O/100)*12+(BF.C/100)*12+(H.A/100)*8+(EF.akademik/100)*25+(EF.umum/100)*10+kogKuliah*20;
+  const sW_r=(H.E/100)*18+(BF.E/100)*12+(BF.O/100)*12+(EF.wirausaha/100)*30+(EF.umum/100)*13+kogWira*15;
   const tot=sB_r+sM_r+sW_r;
   const sB=Math.round(sB_r/tot*100), sM=Math.round(sM_r/tot*100), sW=100-sB-sM;
   const rek=sB>=sM&&sB>=sW?'Bekerja':(sM>=sB&&sM>=sW?'Kuliah':'Wirausaha');
+
+  // Detail Holland
+  const HOLLAND_DETAIL={
+    Bekerja:{R:"🔧 Bidang kerja: Teknisi/Mekanik/Operator — manufaktur, otomotif, konstruksi.",I:"🔬 Bidang kerja: Analis/QC/Lab Teknisi — pengujian produk, riset terapan.",A:"🎨 Bidang kerja: Desainer/Kreatif Industri — desain grafis, multimedia, konten.",S:"🤝 Bidang kerja: CS/Perawat/Pendidik — pelayanan sosial, kesehatan.",E:"📊 Bidang kerja: Sales/Marketing/Supervisor — penjualan, pemasaran.",C:"📋 Bidang kerja: Administrasi/Staf Keuangan/Akuntan — tata kelola, pembukuan."},
+    Kuliah:{R:"🏗️ Jurusan: Teknik Mesin · Teknik Sipil · Teknik Elektro · D3/D4 Industri.",I:"💻 Jurusan: Teknik Informatika · Ilmu Komputer · Matematika · Farmasi.",A:"🎭 Jurusan: Desain Komunikasi Visual · Seni Rupa · Arsitektur · Animasi.",S:"💛 Jurusan: Psikologi · Pendidikan · Kesehatan Masyarakat · Keperawatan.",E:"🌐 Jurusan: Manajemen Bisnis · Komunikasi · Hukum · Administrasi Publik.",C:"💰 Jurusan: Akuntansi · Sistem Informasi · Manajemen Keuangan."},
+    Wirausaha:{R:"🔩 Jenis usaha: Bengkel/kontraktor kecil/servis elektronik/produksi barang.",I:"💡 Jenis usaha: Konsultasi IT/pengembangan aplikasi/jasa analitik.",A:"🎬 Jenis usaha: Desainer freelance/konten kreator/studio foto/fashion lokal.",S:"🌱 Jenis usaha: Kursus/les privat/katering komunitas/jasa konseling.",E:"🛒 Jenis usaha: Reseller/dropship/agen properti/event organizer.",C:"📑 Jenis usaha: Jasa perpajakan/pembukuan UMKM/apotek kecil."}
+  };
+  const detailRek = HOLLAND_DETAIL[rek]?.[hollandKode[0]] || '';
 
   const payload={
     timestamp:new Date().toISOString(),
@@ -346,23 +582,51 @@ function submitTes(auto=false){
     h_R:H.R,h_I:H.I,h_A:H.A,h_S:H.S,h_E:H.E,h_C:H.C,hollandKode,
     bf_O:BF.O,bf_C:BF.C,bf_E:BF.E,bf_A:BF.A,bf_N:BF.N,bf_Nstabil:BF.Nstabil,
     ef_umum:EF.umum,ef_akademik:EF.akademik,ef_vokasional:EF.vokasional,ef_wirausaha:EF.wirausaha,
-    skor_B:sB,skor_M:sM,skor_W:sW,rekomendasi:rek,
-    rawAnswers:JSON.stringify(Object.fromEntries(fields.map(n=>[n,getVal(n)||0])))
+    kog_numerik:KOG.numerik,kog_verbal:KOG.verbal,kog_logika:KOG.logika,
+    kog_total:KOG.total,kog_pct:KOG.pct,
+    skor_B:sB,skor_M:sM,skor_W:sW,rekomendasi:rek,detailRekomendasi:detailRek,
+    rawAnswers:JSON.stringify(Object.fromEntries([
+      ...fields.map(n=>[n,getValInt(n)||0]),
+      ...kogFields.map(n=>[n,getVal(n)||''])
+    ]))
   };
 
   fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
-    .then(()=>showSukses(payload.nama))
+    .then(()=>showSukses(payload.nama,rek,detailRek,sB,sM,sW,KOG))
     .catch(()=>{
-      try{const s=JSON.parse(sessionStorage.getItem('bmw_q')||'[]');s.push(payload);sessionStorage.setItem('bmw_q',JSON.stringify(s));}catch(e){}
-      showSukses(payload.nama);
+      try{const s=JSON.parse(sessionStorage.getItem('wbm_q')||'[]');s.push(payload);sessionStorage.setItem('wbm_q',JSON.stringify(s));}catch(e){}
+      showSukses(payload.nama,rek,detailRek,sB,sM,sW,KOG);
     });
 }
 
-function showSukses(nama){
+function showSukses(nama,rek,detail,sB,sM,sW,KOG){
   clearInterval(timerInterval);
-  ['header','.prog-wrap','main'].forEach(s=>{const el=document.querySelector(s);if(el)el.style.display='none';});
+  ['header','.prog-wrap','main','#tab-nav'].forEach(s=>{const el=document.querySelector(s);if(el)el.style.display='none';});
   document.getElementById('tab-warning').style.display='none';
-  document.getElementById('s-nama').textContent=nama||'Siswa';
+  const rekColor={Bekerja:'#2563EB',Kuliah:'#7C3AED',Wirausaha:'#D97706'};
+  const rekIcon={Bekerja:'💼',Kuliah:'🎓',Wirausaha:'🚀'};
+  const rekLabel={Bekerja:'Bekerja',Kuliah:'Melanjutkan Kuliah',Wirausaha:'Wirausaha'};
+  const c=rekColor[rek]||'#111';
+  const kogLabel=v=>v>=80?'Tinggi':v>=60?'Cukup':v>=40?'Sedang':'Perlu Dikembangkan';
+  document.getElementById('sukses').innerHTML=`
+    <div class="s-ico">✅</div>
+    <h2>Jawaban Berhasil Dikirim!</h2>
+    <p>Terima kasih, <strong>${nama||'Siswa'}</strong>.</p>
+    <div style="margin:20px auto;max-width:440px;background:${c}15;border:2px solid ${c}40;border-radius:14px;padding:20px;text-align:left">
+      <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:${c};margin-bottom:6px">${rekIcon[rek]} Rekomendasi Awal — ${rekLabel[rek]}</div>
+      <div style="font-size:13px;color:#111;margin-bottom:12px">${detail||'Detail akan disampaikan panitia.'}</div>
+      <div style="display:flex;gap:10px;font-size:12px;flex-wrap:wrap;color:#555">
+        <span>💼 Bekerja <strong style="color:#2563EB">${sB}%</strong></span>
+        <span>🎓 Kuliah <strong style="color:#7C3AED">${sM}%</strong></span>
+        <span>🚀 Wirausaha <strong style="color:#D97706">${sW}%</strong></span>
+      </div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid ${c}30;font-size:11px;color:#666">
+        🧠 Kognitif: <strong>${KOG.total}/20</strong> benar (${KOG.pct}% — ${kogLabel(KOG.pct)}) &nbsp;|&nbsp;
+        Numerik ${KOG.numerik}% · Verbal ${KOG.verbal}% · Logika ${KOG.logika}%
+      </div>
+    </div>
+    <p style="font-size:12px;color:#aaa;margin-top:8px">Detail lengkap akan disampaikan oleh panitia / guru BK.<br>Silakan kumpulkan perangkat kepada pengawas.</p>
+  `;
   document.getElementById('sukses').style.display='block';
   window.scrollTo({top:0});
 }
