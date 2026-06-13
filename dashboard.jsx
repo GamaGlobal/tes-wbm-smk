@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 // ══════════════════════════════════════════════════════════════
 // KONFIGURASI
 // ══════════════════════════════════════════════════════════════
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-m8GlmQnk24NoH8lqrnXiJuRyTt3MVKqRjza5ZwB1GRxrTMHEHJ8GFaTurEuVD2M/exec";
-const PANITIA_PASSWORD = "bmwsmk2026"; // Ganti dengan password panitia
+const PANITIA_PASSWORD = "wbmsmk2026"; // Ganti dengan password panitia
+const REALTIME_INTERVAL = 15000; // auto-refresh setiap 15 detik
 
 // ══════════════════════════════════════════════════════════════
 // DATA DUMMY (hapus saat production)
@@ -467,8 +468,8 @@ function HalamanPilih({ onPeserta, onPanitia }) {
       <div style={{ textAlign:"center", width:"100%", maxWidth:520 }}>
         <div style={{ fontSize:52, marginBottom:16 }}>🎯</div>
         <div style={{ fontSize:11, letterSpacing:".14em", textTransform:"uppercase", color:"#888", marginBottom:8 }}>Sistem Tes Karir</div>
-        <div style={{ fontSize:28, fontWeight:800, color:"#fff", marginBottom:4 }}>BMW — SMK</div>
-        <div style={{ fontSize:13, color:"#666", marginBottom:40 }}>Bekerja · Melanjutkan Kuliah · Wirausaha</div>
+        <div style={{ fontSize:28, fontWeight:800, color:"#fff", marginBottom:4 }}>WBM — SMK</div>
+        <div style={{ fontSize:13, color:"#666", marginBottom:40 }}>Wirausaha · Bekerja · Melanjutkan Kuliah</div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
           <button onClick={onPeserta}
             style={{ background:"#1c1c1a", border:"1.5px solid #333", borderRadius:14, padding:"28px 20px", cursor:"pointer", textAlign:"center", transition:"border-color .2s" }}
@@ -493,29 +494,257 @@ function HalamanPilih({ onPeserta, onPanitia }) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// CETAK SEMUA PDF (satu dokumen untuk semua / filtered siswa)
+// ══════════════════════════════════════════════════════════════
+function cetakSemuaPDF(siswaList, judulFilter = "Semua Siswa") {
+  if (!siswaList || siswaList.length === 0) {
+    alert("Tidak ada data siswa untuk dicetak.");
+    return;
+  }
+  const win = window.open("", "_blank");
+
+  const efKlsLabel = (v) => v>=81?"Sangat Tinggi":v>=61?"Tinggi":v>=41?"Sedang":v>=21?"Rendah":"Sangat Rendah";
+  const kogLabel = (v) => v>=80?"Tinggi":v>=60?"Cukup":v>=40?"Sedang":"Perlu Dikembangkan";
+  const rekDesc = {
+    Bekerja:"Memiliki orientasi praktis, ketekunan, dan efikasi vokasional tinggi.",
+    Kuliah:"Memiliki keterbukaan intelektual, kemampuan analitis, dan efikasi akademik tinggi.",
+    Wirausaha:"Memiliki jiwa kepemimpinan, keberanian mengambil risiko, dan efikasi kewirausahaan tinggi."
+  };
+
+  const stats = {
+    total: siswaList.length,
+    bekerja: siswaList.filter(d=>d.rekomendasi==="Bekerja").length,
+    kuliah: siswaList.filter(d=>d.rekomendasi==="Kuliah").length,
+    wirausaha: siswaList.filter(d=>d.rekomendasi==="Wirausaha").length,
+  };
+
+  // Halaman ringkasan di awal
+  const ringkasanHTML = `
+  <div class="page page-break">
+    <div class="cover-header">
+      <div style="font-size:40px;margin-bottom:12px">📋</div>
+      <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#888;margin-bottom:6px">Laporan Hasil Tes Karir WBM SMK</div>
+      <div style="font-size:26px;font-weight:800">Rekap ${judulFilter}</div>
+      <div style="font-size:12px;color:#aaa;margin-top:6px">Dicetak: ${new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-box" style="background:#F7F6F3"><div class="stat-num" style="color:#111">${stats.total}</div><div class="stat-lbl">Total Peserta</div></div>
+      <div class="stat-box" style="background:#DBEAFE"><div class="stat-num" style="color:#2563EB">${stats.bekerja}</div><div class="stat-lbl">💼 Bekerja</div></div>
+      <div class="stat-box" style="background:#EDE9FE"><div class="stat-num" style="color:#7C3AED">${stats.kuliah}</div><div class="stat-lbl">🎓 Kuliah</div></div>
+      <div class="stat-box" style="background:#FEF3C7"><div class="stat-num" style="color:#D97706">${stats.wirausaha}</div><div class="stat-lbl">🚀 Wirausaha</div></div>
+    </div>
+    <table class="rekap-table">
+      <thead>
+        <tr><th>No</th><th>Nama</th><th>NISN</th><th>Kelas</th><th>Rekomendasi</th><th>Bekerja</th><th>Kuliah</th><th>Wirausaha</th><th>Kognitif</th><th>Holland</th><th>⚠️</th></tr>
+      </thead>
+      <tbody>
+        ${siswaList.map((d,i)=>`
+        <tr class="rek-${d.rekomendasi}">
+          <td>${i+1}</td>
+          <td style="font-weight:600">${d.nama||'—'}</td>
+          <td>${d.nisn||'—'}</td>
+          <td>${d.kelas||'—'}</td>
+          <td><span class="badge-${d.rekomendasi}">${d.rekomendasi==="Kuliah"?"🎓 Kuliah":d.rekomendasi==="Bekerja"?"💼 Bekerja":"🚀 Wirausaha"}</span></td>
+          <td>${d.skor_B||0}%</td>
+          <td>${d.skor_M||0}%</td>
+          <td>${d.skor_W||0}%</td>
+          <td>${d.kog_pct||0}%</td>
+          <td style="font-family:monospace;font-weight:700">${d.hollandKode||'—'}</td>
+          <td>${(d.violations||0)>0?`<span style="color:#DC2626;font-weight:700">${d.violations}x</span>`:'—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+
+  // Satu halaman per siswa
+  const siswaPages = siswaList.map(siswa => {
+    const s2 = normalizeRow(siswa);
+    const c = {Bekerja:"#2563EB",Kuliah:"#7C3AED",Wirausaha:"#D97706"}[s2.rekomendasi]||"#111";
+    const detail = s2.detailRekomendasi || (HOLLAND_DETAIL[s2.rekomendasi]?.[String(s2.hollandKode||'')[0]] ?? '');
+    return `
+    <div class="page page-break">
+      <div class="page-header">
+        <div>
+          <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#888">Laporan Individual — Tes Karir WBM SMK</div>
+          <div style="font-size:18px;font-weight:800;margin-top:3px">${s2.nama||'—'}</div>
+          <div style="font-size:11px;color:#aaa">${s2.kelas||''} · ${s2.sekolah||''} · NISN: ${s2.nisn||'—'}</div>
+        </div>
+        <div style="font-size:10px;color:#aaa;text-align:right">${s2.tgl||''}</div>
+      </div>
+      ${(s2.violations||0)>0?`<div class="warn-box">⚠️ Terdeteksi ${s2.violations} pelanggaran selama tes</div>`:''}
+      <div class="rek-box-full" style="background:${c}">
+        <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.8;margin-bottom:6px">Rekomendasi Jalur Karir</div>
+        <div style="font-size:22px;font-weight:800">${{Bekerja:"💼 Bekerja",Kuliah:"🎓 Melanjutkan Kuliah",Wirausaha:"🚀 Wirausaha"}[s2.rekomendasi]}</div>
+        <div style="font-size:12px;margin-top:8px;opacity:.9">${rekDesc[s2.rekomendasi]||''}</div>
+      </div>
+      ${detail?`<div class="detail-box" style="border-left:3px solid ${c};background:${c}10"><span style="font-weight:700;color:${c}">Detail Bidang: </span>${detail}</div>`:''}
+      <div class="grid3">
+        <div class="mini-card" style="background:#EFF6FF;border:1px solid #BFDBFE">
+          <div style="font-size:10px;font-weight:700;color:#2563EB">💼 Skor Bekerja</div>
+          <div style="font-size:26px;font-weight:800;color:#2563EB">${s2.skor_B||0}%</div>
+        </div>
+        <div class="mini-card" style="background:#F5F3FF;border:1px solid #DDD6FE">
+          <div style="font-size:10px;font-weight:700;color:#7C3AED">🎓 Skor Kuliah</div>
+          <div style="font-size:26px;font-weight:800;color:#7C3AED">${s2.skor_M||0}%</div>
+        </div>
+        <div class="mini-card" style="background:#FFFBEB;border:1px solid #FDE68A">
+          <div style="font-size:10px;font-weight:700;color:#D97706">🚀 Skor Wirausaha</div>
+          <div style="font-size:26px;font-weight:800;color:#D97706">${s2.skor_W||0}%</div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <div class="section-title">🎯 Holland RIASEC</div>
+          <div style="font-family:monospace;font-size:28px;font-weight:800;color:#2563EB;margin-bottom:8px">${s2.hollandKode||'—'}</div>
+          ${[['R','#3B82F6'],['I','#8B5CF6'],['A','#EC4899'],['S','#10B981'],['E','#F59E0B'],['C','#6B7280']].map(([k,col])=>`
+            <div class="bar-row">
+              <span style="min-width:12px;font-weight:700;color:${col}">${k}</span>
+              <div class="bar-bg"><div class="bar-fill" style="width:${s2[`h_${k}`]||0}%;background:${col}"></div></div>
+              <span style="font-weight:700;color:${col}">${s2[`h_${k}`]||0}%</span>
+            </div>`).join('')}
+        </div>
+        <div>
+          <div class="section-title">🧬 Big Five</div>
+          ${[['O','Openness','#7C3AED'],['C','Conscientiousness','#2563EB'],['E','Extraversion','#F59E0B'],['A','Agreeableness','#10B981'],['N','Neuroticism','#EF4444']].map(([k,l,col])=>`
+            <div class="bar-row">
+              <span style="min-width:12px;font-weight:700;color:${col}">${k}</span>
+              <div class="bar-bg"><div class="bar-fill" style="width:${s2[`bf_${k}`]||0}%;background:${col}"></div></div>
+              <span style="font-weight:700;color:${col}">${s2[`bf_${k}`]||0}%</span>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="section-title">💪 Efikasi Diri</div>
+      ${[['ef_umum','⚡ Efikasi Umum','#6D28D9'],['ef_akademik','📖 Akademik','#0D9488'],['ef_vokasional','🔧 Vokasional','#2563EB'],['ef_wirausaha','🚀 Kewirausahaan','#D97706']].map(([k,l,col])=>`
+        <div class="ef-row2">
+          <span>${l}</span>
+          <span class="ef-badge2" style="background:${col}22;color:${col}">${efKlsLabel(s2[k]||0)}</span>
+          <span style="font-weight:800;color:${col};min-width:36px;text-align:right">${s2[k]||0}%</span>
+        </div>`).join('')}
+      <div class="section-title" style="margin-top:12px">🧠 Kemampuan Kognitif</div>
+      <div class="grid3" style="margin-top:8px">
+        ${[['Numerik',s2.kog_numerik,'#D97706','7 soal'],['Verbal',s2.kog_verbal,'#7C3AED','7 soal'],['Logika',s2.kog_logika,'#0D9488','6 soal']].map(([l,v,col,sub])=>`
+          <div class="mini-card" style="background:${col}10;border:1px solid ${col}30;text-align:center">
+            <div style="font-size:10px;font-weight:700;color:${col}">${l} (${sub})</div>
+            <div style="font-size:22px;font-weight:800;color:${col}">${v||0}%</div>
+            <div style="font-size:9px;color:#888">${kogLabel(v||0)}</div>
+          </div>`).join('')}
+      </div>
+      <div class="kog-total">🧠 Total: <strong>${s2.kog_total||0}/20 benar · ${s2.kog_pct||0}% · ${kogLabel(s2.kog_pct||0)}</strong></div>
+    </div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Laporan WBM — ${judulFilter} (${siswaList.length} siswa)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Plus Jakarta Sans',sans-serif;background:#fff;color:#111;font-size:12px}
+  @media print{
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .no-print{display:none!important}
+    .page-break{page-break-before:always}
+    .page-break:first-child{page-break-before:avoid}
+  }
+  .print-bar{background:#111;color:#fff;padding:12px 24px;display:flex;gap:10px;align-items:center;position:sticky;top:0;z-index:99}
+  .print-bar button{background:#F59E0B;color:#111;border:none;padding:8px 18px;border-radius:7px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
+  .print-bar span{font-size:13px;color:#aaa}
+  .page{max-width:800px;margin:0 auto;padding:28px 32px 36px}
+  .cover-header{background:#111;color:#fff;border-radius:12px;padding:28px;margin-bottom:20px;text-align:center}
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .stat-box{border-radius:10px;padding:14px;text-align:center;border:1px solid #E4E0D8}
+  .stat-num{font-size:28px;font-weight:800;margin-bottom:4px}
+  .stat-lbl{font-size:11px;color:#6B7280;font-weight:600}
+  .rekap-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}
+  .rekap-table th{background:#111;color:#fff;padding:8px 10px;text-align:left;font-size:10px}
+  .rekap-table td{padding:7px 10px;border-bottom:1px solid #E4E0D8}
+  .rekap-table tr:nth-child(even){background:#FAFAF8}
+  .rek-Bekerja td{border-left:3px solid #2563EB}
+  .rek-Kuliah td{border-left:3px solid #7C3AED}
+  .rek-Wirausaha td{border-left:3px solid #D97706}
+  .badge-Bekerja{background:#DBEAFE;color:#2563EB;padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap}
+  .badge-Kuliah{background:#EDE9FE;color:#7C3AED;padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap}
+  .badge-Wirausaha{background:#FEF3C7;color:#D97706;padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap}
+  .page-header{display:flex;justify-content:space-between;align-items:flex-start;padding:16px 20px;background:#111;color:#fff;border-radius:10px;margin-bottom:14px}
+  .warn-box{background:#FEE2E2;border:1px solid #FCA5A5;border-radius:7px;padding:8px 12px;font-size:11px;color:#DC2626;margin-bottom:10px}
+  .rek-box-full{color:#fff;border-radius:10px;padding:16px 20px;margin-bottom:12px;text-align:center}
+  .detail-box{border-radius:8px;padding:10px 14px;font-size:12px;color:#374151;line-height:1.7;margin-bottom:12px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+  .mini-card{border-radius:8px;padding:10px 12px}
+  .section-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#374151;margin-bottom:6px;margin-top:10px}
+  .bar-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:11px}
+  .bar-bg{flex:1;background:#E5E7EB;border-radius:3px;height:7px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:3px}
+  .ef-row2{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #F3F4F6;font-size:11px}
+  .ef-badge2{font-size:10px;padding:1px 7px;border-radius:10px;font-weight:700}
+  .kog-total{background:#FEF3C7;border:1px solid #FCD34D;border-radius:7px;padding:8px 12px;font-size:11px;margin-top:6px}
+</style>
+</head>
+<body>
+  <div class="no-print print-bar">
+    <button onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+    <span>${siswaList.length} laporan individual + 1 halaman rekap</span>
+    <span style="margin-left:auto;font-size:11px">Tip: Pilih "Simpan sebagai PDF" di dialog print</span>
+  </div>
+  ${ringkasanHTML}
+  ${siswaPages}
+</body>
+</html>`;
+
+  win.document.write(html);
+  win.document.close();
+}
+
+// ══════════════════════════════════════════════════════════════
 // DASHBOARD PANITIA (utama)
 // ══════════════════════════════════════════════════════════════
 function DashboardPanitiaMain({ onLogout }) {
-  const [data, setData]         = useState(DEMO_DATA);
-  const [loading, setLoading]   = useState(false);
-  const [search, setSearch]     = useState("");
-  const [filterRek, setFilterRek] = useState("Semua");
+  const [data, setData]             = useState(DEMO_DATA);
+  const [loading, setLoading]       = useState(false);
+  const [search, setSearch]         = useState("");
+  const [filterRek, setFilterRek]   = useState("Semua");
   const [filterKelas, setFilterKelas] = useState("Semua");
-  const [selected, setSelected] = useState(null);
-  const [tab, setTab]           = useState("tabel");
+  const [selected, setSelected]     = useState(null);
+  const [tab, setTab]               = useState("tabel");
+  const [realtimeOn, setRealtimeOn] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [newCount, setNewCount]     = useState(0);
+  const prevCountRef                = useRef(DEMO_DATA.length);
+  const intervalRef                 = useRef(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (silent = false) => {
     if (APPS_SCRIPT_URL.includes("GANTI")) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
-      const res = await fetch(APPS_SCRIPT_URL + "?action=getData");
+      const res = await fetch(APPS_SCRIPT_URL + "?action=getData&t=" + Date.now());
       const json = await res.json();
-      if (json.data) setData(json.data.map(normalizeRow));
+      if (json.data) {
+        const normalized = json.data.map(normalizeRow);
+        setData(normalized);
+        const added = normalized.length - prevCountRef.current;
+        if (added > 0 && prevCountRef.current > 0) setNewCount(n => n + added);
+        prevCountRef.current = normalized.length;
+        setLastUpdate(new Date());
+      }
     } catch {}
-    setLoading(false);
+    if (!silent) setLoading(false);
   }, []);
 
+  // Initial load
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Real-time polling
+  useEffect(() => {
+    if (realtimeOn) {
+      intervalRef.current = setInterval(() => fetchData(true), REALTIME_INTERVAL);
+    } else {
+      clearInterval(intervalRef.current);
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [realtimeOn, fetchData]);
 
   const kelasList = ["Semua", ...new Set(data.map(d => d.kelas).filter(Boolean))];
   const filtered = data.filter(d => {
@@ -550,17 +779,54 @@ function DashboardPanitiaMain({ onLogout }) {
         <div style={{ maxWidth:1200, margin:"0 auto", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12 }}>
           <div>
             <div style={{ fontSize:10, letterSpacing:".12em", textTransform:"uppercase", color:"#888", marginBottom:4 }}>Dashboard Panitia · SMK Kelas 1</div>
-            <div style={{ fontSize:22, fontWeight:800 }}>🎯 BMW Karir — Data Siswa</div>
-            <div style={{ fontSize:11, color:"#888", marginTop:2 }}>Holland RIASEC · Big Five · Efikasi Diri · {data.length} peserta</div>
+            <div style={{ fontSize:22, fontWeight:800 }}>🎯 WBM Karir — Data Siswa</div>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginTop:4, flexWrap:"wrap" }}>
+              <div style={{ fontSize:11, color:"#888" }}>Holland · Big Five · Efikasi · Kognitif · {data.length} peserta</div>
+              {/* LIVE INDICATOR */}
+              <div style={{ display:"flex", alignItems:"center", gap:6, background:"#1a1a18", borderRadius:20, padding:"3px 10px" }}>
+                <div style={{ width:7, height:7, borderRadius:"50%", background: realtimeOn ? "#4ade80" : "#6B7280",
+                  boxShadow: realtimeOn ? "0 0 0 2px #4ade8044" : "none",
+                  animation: realtimeOn ? "pulse 2s infinite" : "none" }} />
+                <span style={{ fontSize:10, color: realtimeOn ? "#4ade80" : "#6B7280", fontWeight:700 }}>
+                  {realtimeOn ? "LIVE" : "PAUSED"}
+                </span>
+                {lastUpdate && <span style={{ fontSize:10, color:"#555" }}>· {lastUpdate.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</span>}
+                {newCount > 0 && (
+                  <span style={{ background:"#F59E0B", color:"#111", fontSize:10, fontWeight:800, padding:"1px 6px", borderRadius:10 }}
+                    onClick={()=>setNewCount(0)}>+{newCount} baru ✕</span>
+                )}
+              </div>
+            </div>
           </div>
-          <div style={{ display:"flex", gap:8 }}>
-            <button onClick={fetchData} style={s.btn("#fff","#333")} disabled={loading}>{loading?"⏳ Memuat…":"🔄 Refresh"}</button>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+            <button onClick={()=>setRealtimeOn(v=>!v)}
+              style={{ ...s.btn(realtimeOn?"#4ade80":"#6B7280", "#1a1a18"), border:"1.5px solid "+(realtimeOn?"#4ade8044":"#333") }}>
+              {realtimeOn ? "⏸ Pause Live" : "▶ Resume Live"}
+            </button>
+            <button onClick={()=>fetchData(false)} style={s.btn("#fff","#333")} disabled={loading}>
+              {loading ? "⏳" : "🔄"} Refresh
+            </button>
+            <button onClick={()=>cetakSemuaPDF(filtered, filterRek==="Semua"?"Semua Siswa":filterRek)}
+              style={s.btn("#fff","#1a6b35")}>
+              🖨️ Cetak Semua PDF
+            </button>
             <button onClick={onLogout} style={s.btn("#fff","#555")}>🔓 Keluar</button>
           </div>
         </div>
       </div>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
 
       <div style={s.main}>
+        {/* NOTIFIKASI PESERTA BARU */}
+        {newCount > 0 && (
+          <div style={{ background:"#ECFDF5", border:"1.5px solid #6EE7B7", borderRadius:10, padding:"10px 16px", marginBottom:16,
+            display:"flex", alignItems:"center", justifyContent:"space-between", fontSize:13 }}>
+            <span>🟢 <strong>{newCount} peserta baru</strong> selesai mengerjakan tes. Data sudah diperbarui.</span>
+            <button onClick={()=>setNewCount(0)}
+              style={{ background:"none", border:"none", color:"#6B7280", cursor:"pointer", fontSize:16 }}>✕</button>
+          </div>
+        )}
+
         {/* STAT CARDS */}
         <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:12, marginBottom:20 }}>
           {[
@@ -601,6 +867,12 @@ function DashboardPanitiaMain({ onLogout }) {
                 {kelasList.map(k=><option key={k}>{k}</option>)}
               </select>
               <span style={{ fontSize:12, color:"#888" }}>{filtered.length} siswa</span>
+              {filtered.length > 0 && filtered.length < data.length && (
+                <button onClick={()=>cetakSemuaPDF(filtered, `${filterRek!=="Semua"?filterRek+" · ":""}${filterKelas!=="Semua"?filterKelas:""}`)}
+                  style={{ ...s.btn("#fff","#374151"), fontSize:11 }}>
+                  🖨️ PDF ({filtered.length})
+                </button>
+              )}
             </div>
 
             <div style={{ ...s.card, padding:0, overflow:"hidden" }}>
