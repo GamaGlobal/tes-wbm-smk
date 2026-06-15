@@ -205,11 +205,28 @@ main{max-width:820px;margin:0 auto;padding:26px 16px 64px}
       <div class="id-grid">
         <div class="fg"><label>Nama Lengkap *</label><input type="text" id="f-nama" placeholder="Nama lengkap…" onfocus="scrollToField(this)"></div>
         <div class="fg"><label>NISN *</label><input type="text" id="f-nisn" placeholder="Nomor Induk Siswa…" onfocus="scrollToField(this)"></div>
-        <div class="fg"><label>Kelas / Jurusan *</label><input type="text" id="f-kelas" placeholder="X TKJ / X AKL…" onfocus="scrollToField(this)"></div>
+        <div class="fg"><label>Kelas / Jurusan *</label>
+          <select id="f-kelas" onfocus="scrollToField(this)">
+            <option value="">Pilih kelas…</option>
+            <option>XI DPIB A</option>
+            <option>XI DPIB B</option>
+            <option>XI TKL A</option>
+            <option>XI TKL B</option>
+            <option>XI TPFL A</option>
+            <option>XI TPFL B</option>
+            <option>XI TM A</option>
+            <option>XI TM B</option>
+            <option>XI TKR A</option>
+            <option>XI TKR B</option>
+            <option>XI TSM</option>
+            <option>XI TJKT A</option>
+            <option>XI TJKT B</option>
+          </select>
+        </div>
         <div class="fg"><label>Jenis Kelamin</label>
           <select id="f-jk" onfocus="scrollToField(this)"><option value="">Pilih…</option><option>Laki-laki</option><option>Perempuan</option></select>
         </div>
-        <div class="fg"><label>Nama Sekolah</label><input type="text" id="f-sekolah" placeholder="SMK…" onfocus="scrollToField(this)"></div>
+        <div class="fg"><label>Nama Sekolah</label><input type="text" id="f-sekolah" value="SMKN 1 SEDAYU" placeholder="SMK…" onfocus="scrollToField(this)"></div>
         <div class="fg"><label>Tanggal Tes</label><input type="date" id="f-tgl" onfocus="scrollToField(this)"></div>
       </div>
     </div>
