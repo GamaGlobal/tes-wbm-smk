@@ -857,7 +857,8 @@ function submitTes(auto=false){
   const sW_r=(H.E/100)*18+(BF.E/100)*12+(BF.O/100)*12+(EF.wirausaha/100)*30+(EF.umum/100)*13+kogWira*15;
   const tot=sB_r+sM_r+sW_r;
   const sB=Math.round(sB_r/tot*100), sM=Math.round(sM_r/tot*100), sW=100-sB-sM;
-  const rek=sB>=sM&&sB>=sW?'Bekerja':(sM>=sB&&sM>=sW?'Kuliah':'Wirausaha');
+  // Urutan prioritas saat skor seri (tie-break): Wirausaha > Bekerja > Kuliah
+  const rek=sW>=sB&&sW>=sM?'Wirausaha':(sB>=sM?'Bekerja':'Kuliah');
 
   // Detail Holland
   const HOLLAND_DETAIL={
